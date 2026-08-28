@@ -19,9 +19,9 @@ public class UnrealFlecsNetworking : ModuleRules
 				"Core",
 				"CoreUObject",
 				"Engine",
-				"UnrealFlecs",
 				"FlecsLibrary",
 				"SolidMacros",
+				"UnrealFlecs",
 				"NetCore",
 			}
 		);
