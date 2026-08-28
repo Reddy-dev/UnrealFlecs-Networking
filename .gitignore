@@ -47,7 +47,7 @@ SourceArt/**/*.tga
 
 # Binary Files
 Binaries/*
-Plugins/**/Binaries/*
+Plugins/*/Binaries/*
 
 # Builds
 Build/*
@@ -68,7 +68,22 @@ Saved/*
 
 # Compiled source files for the engine to use
 Intermediate/*
-Plugins/**/Intermediate/*
+Plugins/*/Intermediate/*
 
 # Cache files for the editor to use
 DerivedDataCache/*
+
+Scripts/*
+!Scripts/
+!Scripts/*.bat
+!Scripts/*.json
+!Scripts/*.md
+!Scripts/*.py
+!Scripts/ForkTests/
+!Scripts/ForkTests/**
+!Scripts/Tests/
+!Scripts/Tests/**
+Plugins/*/Scripts/*
+
+.uet/
+/.idea

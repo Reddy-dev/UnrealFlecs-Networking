@@ -22,10 +22,6 @@
 	],
 	"Plugins": [
 		{
-			"Name": "SolidMacros",
-			"Enabled": true
-		},
-		{
 			"Name": "UnrealFlecs",
 			"Enabled": true
 		}

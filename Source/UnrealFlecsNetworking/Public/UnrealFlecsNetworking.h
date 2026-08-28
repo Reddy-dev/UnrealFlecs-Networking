@@ -1,4 +1,4 @@
-﻿// Copyright Epic Games, Inc. All Rights Reserved.
+// Elie Wiese-Namir © 2026. All Rights Reserved.
 
 #pragma once
 
@@ -7,8 +7,7 @@
 class FUnrealFlecsNetworkingModule : public IModuleInterface
 {
 public:
-
-	/** IModuleInterface implementation */
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
-};
+
+}; // class FUnrealFlecsNetworkingModule

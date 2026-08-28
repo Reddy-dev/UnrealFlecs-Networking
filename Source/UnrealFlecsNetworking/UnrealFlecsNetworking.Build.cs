@@ -1,4 +1,4 @@
-﻿// Copyright Epic Games, Inc. All Rights Reserved.
+// Copyright Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -7,35 +7,25 @@ public class UnrealFlecsNetworking : ModuleRules
 	public UnrealFlecsNetworking(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
-		
-		PublicIncludePaths.AddRange(
-			new string[] {
-				ModuleDirectory,
-			}
-			);
-				
-		
-		PrivateIncludePaths.AddRange(
-			new string[] {
-				// ... add other private include paths required here ...
-			}
-			);
-			
-		
+
+		CppStandard = CppStandardVersion.Cpp23;
+		IWYUSupport = IWYUSupport.Full;
+
+		SetupIrisSupport(Target, true);
+
 		PublicDependencyModuleNames.AddRange(
 			new string[]
 			{
 				"Core",
-			}
-			);
-			
-		
-		PrivateDependencyModuleNames.AddRange(
-			new string[]
-			{
 				"CoreUObject",
 				"Engine",
+				"UnrealFlecs",
+				"FlecsLibrary",
+				"SolidMacros",
+				"NetCore",
 			}
-			);
+		);
+
+		CppCompileWarningSettings.NonInlinedGenCppWarningLevel = WarningLevel.Error;
 	}
 }
