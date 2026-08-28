@@ -18,6 +18,11 @@
 			"Name": "UnrealFlecsNetworking",
 			"Type": "Runtime",
 			"LoadingPhase": "Default"
+		},
+		{
+			"Name": "UnrealFlecsNetworkingTests",
+			"Type": "DeveloperTool",
+			"LoadingPhase": "Default"
 		}
 	],
 	"Plugins": [

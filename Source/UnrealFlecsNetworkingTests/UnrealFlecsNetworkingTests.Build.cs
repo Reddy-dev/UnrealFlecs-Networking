@@ -1,0 +1,55 @@
+using UnrealBuildTool;
+
+public class UnrealFlecsNetworkingTests : ModuleRules
+{
+	public UnrealFlecsNetworkingTests(ReadOnlyTargetRules Target) : base(Target)
+	{
+		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
+
+		CppStandard = CppStandardVersion.Cpp23;
+
+		SetupIrisSupport(Target, true);
+
+		PublicDependencyModuleNames.AddRange(
+			new string[]
+			{
+				"Core",
+				"StructUtils",
+				"GameplayTags",
+			}
+		);
+
+		PrivateDependencyModuleNames.AddRange(
+			new string[]
+			{
+				"CoreUObject",
+				"Engine",
+				"Slate",
+				"SlateCore",
+				"AutomationUtils",
+				"FunctionalTesting",
+				"CQTest",
+				"SolidMacros",
+				"FlecsLibrary",
+				"UnrealFlecs",
+				"UnrealFlecsTests",
+				"UnrealFlecsNetworking",
+			}
+		);
+
+		if (Target.bBuildEditor)
+		{
+			PrivateDependencyModuleNames.AddRange(
+				new string[]
+				{
+					"BlueprintGraph",
+					"EngineSettings",
+					"LevelEditor",
+					"UnrealEd",
+				}
+			);
+		}
+
+		CppCompileWarningSettings.NonInlinedGenCppWarningLevel = WarningLevel.Error;
+	}
+}
