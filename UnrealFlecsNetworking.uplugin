@@ -4,7 +4,7 @@
 	"VersionName": "1.0",
 	"FriendlyName": "UnrealFlecsNetworking",
 	"Description": "",
-	"Category": "Other",
+	"Category": "ECS",
 	"CreatedBy": "Reddy-dev",
 	"CreatedByURL": "",
 	"DocsURL": "",
