@@ -6,7 +6,7 @@
 
 FFlecsNetworkId UDefaultFlecsNetworkIdGenerator::GenerateNetworkId()
 {
-	uint32 Slot = 0;
+	uint32 Slot;
 	
 	if (!FreeSlotIds.IsEmpty())
 	{

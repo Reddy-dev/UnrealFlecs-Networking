@@ -41,7 +41,7 @@ TValueOrError<const FFlecsReplicationLayoutDefinition*, FString> FFlecsReplicati
 		return MakeError(TEXT("Cannot build a replication layout for an invalid world/entity"));
 	}
 
-	const flecs::table_t* Table = Entity.GetEntity().table().get_table();
+	const TSolidNotNull<const flecs::table_t*> Table = Entity.GetEntity().table().get_table();
 	
 	if (const FFlecsReplicationLayoutId* CachedId = TableCache.Find(Table))
 	{
