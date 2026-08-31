@@ -64,7 +64,7 @@ struct FFlecsReplicationShardPoolKey
 
 	friend uint32 GetTypeHash(const FFlecsReplicationShardPoolKey& Key)
 	{
-		return HashCombineFast(GetTypeHash(Key.ShardClass), 
+		return HashCombine(GetTypeHash(Key.ShardClass), 
 			GetTypeHash(Key.ShardGroupKey),
 			GetTypeHash(Key.ObjectPrioritizerName), 
 			GetTypeHash(Key.FilterName));
