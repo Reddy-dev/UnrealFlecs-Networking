@@ -58,14 +58,14 @@ struct UNREALFLECSNETWORKING_API FFlecsReplicationIndividualKey
 			case EFlecsReplicationPairTargetKind::None:
 				break;
 			case EFlecsReplicationPairTargetKind::Schema:
-				Hash = HashCombineFast(Hash, GetTypeHash(Key.Schema));
+				Hash = HashCombine(Hash, GetTypeHash(Key.Schema));
 				break;
 			case EFlecsReplicationPairTargetKind::StableSymbolValue:
 			case EFlecsReplicationPairTargetKind::StablePathValue:
-				Hash = HashCombineFast(Hash, GetTypeHash(Key.StableIdentifier));
+				Hash = HashCombine(Hash, GetTypeHash(Key.StableIdentifier));
 				break;
 			case EFlecsReplicationPairTargetKind::Entity:
-				Hash = HashCombineFast(Hash, GetTypeHash(Key.EntityNetworkId));
+				Hash = HashCombine(Hash, GetTypeHash(Key.EntityNetworkId));
 				break;
 		}
 		
