@@ -88,7 +88,7 @@ void UFlecsNetShardBase::StopShardReplication(const bool bFlushPendingState)
 		return;
 	}
 
-	const EEndReplicationFlags Flags =
+	constexpr EEndReplicationFlags Flags =
 			EEndReplicationFlags::Flush |
 			EEndReplicationFlags::Destroy |
 			EEndReplicationFlags::DestroyNetHandle |
