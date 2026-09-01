@@ -332,6 +332,6 @@ void UFlecsIrisReplicationBridge::ReleaseShardIfEmpty(UFlecsNetShardBase* InShar
 		ShardPools.Remove(PoolKey);
 	}
 
-	InShard->DeinitializeShard();
+	InShard->DeinitializeShard(true);
 	InShard->SetOwningNetworkWorldSubsystem(nullptr);
 }

@@ -2,13 +2,18 @@
 
 #include "Networking/Shards/FlecsNetShardBase.h"
 
+#include "Engine/Level.h"
 #include "Engine/World.h"
 #include "Engine/NetDriver.h"
+#include "Iris/Core/IrisLog.h"
 #include "Iris/ReplicationSystem/ObjectReplicationBridge.h"
 #include "Iris/ReplicationSystem/Filtering/NetObjectFilter.h"
 #include "Iris/ReplicationSystem/Prioritization/NetObjectPrioritizer.h"
 #include "Iris/ReplicationSystem/ReplicationFragmentUtil.h"
 #include "Iris/ReplicationSystem/ReplicationSystem.h"
+#include "Misc/DefinePrivateMemberPtr.h"
+#include "Net/Iris/ReplicationSystem/EngineReplicationBridge.h"
+#include "Net/Iris/ReplicationSystem/ReplicationSystemUtil.h"
 
 #include "Networking/Profiles/FlecsNetAlwaysRelevantTag.h"
 #include "Networking/Profiles/FlecsProfileRelationshipTypes.h"
@@ -38,9 +43,9 @@ void UFlecsNetShardBase::InitializeShard(const FFlecsEntityView& InReplicationPr
 	RootObjectAdapter.Configure(Settings);
 }
 
-void UFlecsNetShardBase::DeinitializeShard()
+void UFlecsNetShardBase::DeinitializeShard(const bool bFlushPendingState)
 {
-	StopShardReplication();
+	StopShardReplication(bFlushPendingState);
 	
 	StopOwningNetworkWorldSubsystemRetry();
 	RootObjectAdapter.DeinitAdapter();
@@ -63,14 +68,43 @@ void UFlecsNetShardBase::StartShardReplication()
 	ApplyReplicationProfile();
 }
 
-void UFlecsNetShardBase::StopShardReplication()
+void UFlecsNetShardBase::StopShardReplication(const bool bFlushPendingState)
 {
-	if (RootObjectAdapter.IsReplicating())
+	if (!RootObjectAdapter.IsReplicating())
+	{
+		return;
+	}
+
+	if (!bFlushPendingState)
 	{
 		RootObjectAdapter.StopReplication();
+		return;
 	}
-}
 
+	const UWorld* World = GetWorld();
+	if (!World)
+	{
+		RootObjectAdapter.StopReplication();
+		return;
+	}
+
+	const EEndReplicationFlags Flags =
+			EEndReplicationFlags::Flush |
+			EEndReplicationFlags::Destroy |
+			EEndReplicationFlags::DestroyNetHandle |
+			EEndReplicationFlags::ClearNetPushId;
+
+	UE::Net::FReplicationSystemUtil::ForEachServerBridge(
+			World,
+			[this, Flags](UEngineReplicationBridge* Bridge)
+			{
+					Bridge->StopReplicatingNetObject(this, Flags);
+			});
+
+	// The Iris handle is now pending flush/removal. This clears the
+	// FNetRootObjectAdapter's local replication state.
+	RootObjectAdapter.StopReplication();
+}
 void UFlecsNetShardBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);

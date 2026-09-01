@@ -43,10 +43,10 @@ public:
 	virtual UWorld* GetWorld() const override;
 
 	virtual void InitializeShard(const FFlecsEntityView& InReplicationProfile);
-	virtual void DeinitializeShard();
+	virtual void DeinitializeShard(const bool bFlushPendingState = false);
 	
 	void StartShardReplication();
-	void StopShardReplication();
+	void StopShardReplication(const bool bFlushPendingState = false);
 
 	NO_DISCARD bool IsShardReplicating() const
 	{
