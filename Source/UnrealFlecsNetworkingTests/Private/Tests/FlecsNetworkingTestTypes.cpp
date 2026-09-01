@@ -1,0 +1,14 @@
+// Elie Wiese-Namir © 2026. All Rights Reserved.
+
+#include "FlecsNetworkingTestTypes.h"
+
+#include UE_INLINE_GENERATED_CPP_BY_NAME(FlecsNetworkingTestTypes)
+
+REGISTER_FLECS_COMPONENT(FFlecsReplicationTestValue);
+REGISTER_FLECS_COMPONENT(FFlecsReplicationTestDontFragmentValue);
+REGISTER_FLECS_COMPONENT(FFlecsReplicationTestNativeValue);
+REGISTER_FLECS_COMPONENT(FFlecsReplicationTestTag);
+REGISTER_FLECS_COMPONENT(FFlecsReplicationTestRequiredTag);
+REGISTER_FLECS_COMPONENT(FFlecsReplicationTestWithValue);
+REGISTER_FLECS_COMPONENT(FFlecsReplicationTestRelationship);
+REGISTER_FLECS_COMPONENT(FFlecsReplicationTestValueRelationship);
