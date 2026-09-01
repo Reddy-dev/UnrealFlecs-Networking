@@ -856,8 +856,8 @@ NETWORK_TEST_CLASS(FlecsReplicationAdditionalRealBridgeNetworkTests,
 
 				const FFlecsNetEntityTableItem* Item =
 					UE::Flecs::Tests::MissingNetwork::FindTableItem(Table, ExpectedNetworkId);
-				return Item && UE::Flecs::Tests::MissingNetwork::HasReplicatedValue(State.FlecsWorld, 71);
-				})
+					return Item && UE::Flecs::Tests::MissingNetwork::HasReplicatedValue(State.FlecsWorld, 71);
+			})
 			.ThenClient(0, [this](FState& State)
 			{
 				const UFlecsNetEntityTable* Table =
