@@ -21,6 +21,7 @@ UNetObjectFactory::FInstantiateResult UFlecsNetEntityProxyNetFactory::Instantiat
 	const UE::Net::FNetObjectCreationHeader* Header)
 {
 	FInstantiateResult Result = Super::InstantiateReplicatedObjectFromHeader(Context, Header);
+	
 	if UNLIKELY_IF(!Result.Instance)
 	{
 		return Result;
