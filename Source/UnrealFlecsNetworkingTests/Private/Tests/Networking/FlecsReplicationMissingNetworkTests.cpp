@@ -637,7 +637,6 @@ NETWORK_TEST_CLASS(FlecsReplicationAdditionalRealBridgeNetworkTests,
 					FName(TEXT("TableDestroyProfile")), Profile);
 				ASSERT_THAT(IsTrue(ProfilePrefab.IsValid()));
 				ASSERT_THAT(IsTrue(NetworkSubsystem->SetReplicationProfile(State.AuthorityEntity, ProfilePrefab)));
-				State.AuthorityEntity.Remove<FFlecsNetDirtyTag>();
 				State.AuthorityEntity.Add<FFlecsNetDirtyTag>();
 			})
 			.UntilClient(TEXT("Entity is hosted by the table before direct destruction"), 0,
