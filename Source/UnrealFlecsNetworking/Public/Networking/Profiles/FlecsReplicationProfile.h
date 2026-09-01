@@ -56,7 +56,8 @@ struct UNREALFLECSNETWORKING_API FFlecsReplicationProfileDefinition
 				return false;
 			}
 			
-			if (!ParameterComponents[i].GetScriptStruct()->CompareScriptStruct(ParameterComponents[i].GetMemory(), Other.ParameterComponents[i].GetMemory(), 0))
+			if (!ParameterComponents[i].GetScriptStruct()->CompareScriptStruct(
+				ParameterComponents[i].GetMemory(), Other.ParameterComponents[i].GetMemory(), 0))
 			{
 				return false;
 			}

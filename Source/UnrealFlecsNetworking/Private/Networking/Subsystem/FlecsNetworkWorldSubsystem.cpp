@@ -553,7 +553,7 @@ bool UFlecsNetworkWorldSubsystem::SetReplicationProfile(const FFlecsEntityHandle
 	
 	solid_checkf(InProfilePrefab.IsPrefab(), TEXT("Cannot set replication profile from an entity that is not a prefab"));
 	
-#if !WITH_CLIENT_CODE
+#if WITH_CLIENT_CODE
 	if UNLIKELY_IF(!HasAuthority())
 	{
 		UE_LOGFMT(LogFlecsWorld, Error,
@@ -590,6 +590,7 @@ bool UFlecsNetworkWorldSubsystem::SetReplicationProfile(const FFlecsEntityHandle
 	{
 		ReplicatedEntity->ProfileId = ProfileId;
 		InEntity.Modified<FFlecsReplicatedEntityComponent>();
+		
 		InEntity.Add<FFlecsNetDirtyTag>();
 	}
 
