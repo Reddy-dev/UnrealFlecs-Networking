@@ -165,8 +165,8 @@ FLECS_REPLICATION_TEST_CLASS_WITH_FLAGS_AND_TAGS(FlecsReplicationBridgeTests,
 		
 		
 		const FFlecsNetworkId NetworkId(44, 1);
-		const auto SelectionOutcome 
-		= NetworkSubsystem()->SelectReplicationShard(World()->CreateEntity(), NetworkId, Profile);
+		const auto SelectionOutcome = NetworkSubsystem()
+			->SelectReplicationShard(World()->CreateEntity(), NetworkId, Profile);
 
 		ASSERT_THAT(IsTrue(SelectionOutcome.IsValid()));
 		ASSERT_THAT(IsTrue(bSelectorCalled));
