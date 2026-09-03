@@ -106,9 +106,10 @@ FLECS_REPLICATION_TEST_CLASS_WITH_FLAGS_AND_TAGS(FlecsReplicationBridgeTests,
 		ASSERT_THAT(IsTrue(ProfilePrefab.Has<FFlecsReplicationProfileTag>()));
 
 		const FFlecsEntityHandle Entity = World()->CreateEntity().AddPrefab(ProfilePrefab.GetFlecsId());
-		FFlecsEntityView ResolvedProfile;
-		ASSERT_THAT(IsTrue(NetworkSubsystem()->ResolveReplicationProfile(Entity, ResolvedProfile)));
-		ASSERT_THAT(IsTrue(ResolvedProfile.Get<FFlecsReplicationProfileDefinition>() == Asset->Definition));
+		
+		auto ResolvedProfileOutcome = NetworkSubsystem()->ResolveReplicationProfile(Entity);
+		ASSERT_THAT(IsTrue(ResolvedProfileOutcome.IsValid()));
+		ASSERT_THAT(IsTrue(ResolvedProfileOutcome.GetValue().Get<FFlecsReplicationProfileDefinition>() == Asset->Definition));
 	}
 
 	TEST_METHOD(ReplicationProfile_SetProfileReplacesRegisteredIsAProfile)
@@ -139,8 +140,9 @@ FLECS_REPLICATION_TEST_CLASS_WITH_FLAGS_AND_TAGS(FlecsReplicationBridgeTests,
 		ASSERT_THAT(IsTrue(ReplicatedEntity->ProfileId == FName(TEXT("SecondProfile"))));
 
 		FFlecsEntityView ResolvedProfile;
-		ASSERT_THAT(IsTrue(NetworkSubsystem()->ResolveReplicationProfile(Entity, ResolvedProfile)));
-		ASSERT_THAT(IsTrue(ResolvedProfile.Get<FFlecsReplicationProfileDefinition>() == SecondDefinition));
+		auto ResolvedProfileOutcome = NetworkSubsystem()->ResolveReplicationProfile(Entity);
+		ASSERT_THAT(IsTrue(ResolvedProfileOutcome.IsValid()));
+		ASSERT_THAT(IsTrue(ResolvedProfileOutcome.GetValue().Get<FFlecsReplicationProfileDefinition>() == SecondDefinition));
 	}
 
 	TEST_METHOD(ReplicationShardSelector_UsesRegisteredImplementation)
@@ -162,14 +164,14 @@ FLECS_REPLICATION_TEST_CLASS_WITH_FLAGS_AND_TAGS(FlecsReplicationBridgeTests,
 		FFlecsEntityView Profile = NetworkSubsystem()->RegisterReplicationProfileDefinition("NewProfile", ProfileDefinition);
 		
 		
-		FFlecsReplicationShardSelection Selection;
 		const FFlecsNetworkId NetworkId(44, 1);
+		const auto SelectionOutcome 
+		= NetworkSubsystem()->SelectReplicationShard(World()->CreateEntity(), NetworkId, Profile);
 
-		ASSERT_THAT(IsTrue(NetworkSubsystem()->SelectReplicationShard(
-			World()->CreateEntity(), NetworkId, Profile, Selection)));
+		ASSERT_THAT(IsTrue(SelectionOutcome.IsValid()));
 		ASSERT_THAT(IsTrue(bSelectorCalled));
-		ASSERT_THAT(IsTrue(Selection.ShardClass == UFlecsNetEntityProxy::StaticClass()));
-		ASSERT_THAT(IsTrue(Selection.ShardGroupKey == FName(TEXT("TestShardGroup"))));
+		ASSERT_THAT(IsTrue(SelectionOutcome.GetValue().ShardClass == UFlecsNetEntityProxy::StaticClass()));
+		ASSERT_THAT(IsTrue(SelectionOutcome.GetValue().ShardGroupKey == FName(TEXT("TestShardGroup"))));
 	}
 
 	TEST_METHOD(EntityTableAndEntityProxy_AreShardStorageTypes)

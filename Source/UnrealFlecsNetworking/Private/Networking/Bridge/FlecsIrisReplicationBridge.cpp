@@ -188,16 +188,21 @@ UFlecsNetShardBase* UFlecsIrisReplicationBridge::ResolveShard(const FFlecsEntity
 	const FFlecsNetworkId& InNetworkId, const FFlecsEntityReplicationSnapshot& InSnapshot)
 {
 	const TSolidNotNull<UFlecsNetworkWorldSubsystem*> NetworkSubsystem = GetNetworkWorldSubsystem();
-
-	FFlecsEntityView Profile;
-	const bool bResolvedProfile = NetworkSubsystem->ResolveReplicationProfile(InEntityHandle, Profile);
-	solid_cassumef(bResolvedProfile,
+	
+	const auto ResolvedProfileOutcome = NetworkSubsystem->ResolveReplicationProfile(InEntityHandle);
+	solid_cassumef(ResolvedProfileOutcome.IsValid(),
 		TEXT("Cannot resolve a replication profile for entity '%s'"), *InEntityHandle.ToString());
 
-	FFlecsReplicationShardSelection Selection;
-	const bool bSelectedShard = NetworkSubsystem->SelectReplicationShard(InEntityHandle, InNetworkId, Profile, Selection);
-	solid_cassumef(bSelectedShard,
-		TEXT("Cannot select a replication shard for entity '%s' with network ID '%s'"), *InEntityHandle.ToString(), *InNetworkId.ToString());
+	const FFlecsEntityView Profile = ResolvedProfileOutcome.GetValue();
+
+	TValueOrError<FFlecsReplicationShardSelection, FString> OutShardValue 
+		= NetworkSubsystem->SelectReplicationShard(InEntityHandle, InNetworkId, Profile);
+	
+	solid_checkf(OutShardValue.HasValue(),
+		TEXT("Cannot select a replication shard for entity '%s' with network ID '%s'"),
+		*InEntityHandle.ToString(), *InNetworkId.ToString());
+
+	const FFlecsReplicationShardSelection Selection = OutShardValue.GetValue();
 
 	if (FFlecsReplicationShardPlacement* Placement = ShardMap.Find(InEntityHandle))
 	{

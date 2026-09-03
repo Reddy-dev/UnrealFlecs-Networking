@@ -141,16 +141,21 @@ public:
 
 	UFUNCTION()
 	bool SetReplicationProfile(const FFlecsEntityHandle& InEntity, const FFlecsEntityView& InProfilePrefab);
+	
+	enum class EResolveReplicationProfileResult
+	{
+		Success,
+		InvalidEntity,
+		NoProfileFound
+	}; // enum class EResolveReplicationProfileResult
 
-	NO_DISCARD bool ResolveReplicationProfile(const FFlecsEntityHandle& InEntity,
-		OUT FFlecsEntityView& OutProfile) const;
+	NO_DISCARD TValueOrError<FFlecsEntityView, EResolveReplicationProfileResult> ResolveReplicationProfile(const FFlecsEntityHandle& InEntity) const;
 
 	bool RegisterReplicationShardSelector(const FName& InName, FFlecsReplicationShardSelectorFunction InSelector);
 
-	NO_DISCARD bool SelectReplicationShard(const FFlecsEntityHandle& InEntity,
+	NO_DISCARD TValueOrError<FFlecsReplicationShardSelection, FString> SelectReplicationShard(const FFlecsEntityHandle& InEntity,
 		const FFlecsNetworkId& InNetworkId,
-		const FFlecsEntityView& InProfile,
-		OUT FFlecsReplicationShardSelection& OutSelection) const;
+		const FFlecsEntityView& InProfile) const;
 
 	void QueueReplicationSnapshot(const FFlecsNetworkId& InNetworkId,
 		const FFlecsEntityReplicationSnapshot& InSnapshot);
