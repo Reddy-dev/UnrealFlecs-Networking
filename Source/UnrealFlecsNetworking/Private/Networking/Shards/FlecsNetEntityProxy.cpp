@@ -76,6 +76,8 @@ void UFlecsNetEntityProxy::RemoveNetEntity(const FFlecsNetworkId& InNetworkId)
 		*InNetworkId.ToString(), *GetName());
 
 	bContainsEntity = false;
+	NetworkId = FFlecsNetworkId();
+	MARK_PROPERTY_DIRTY_FROM_NAME(UFlecsNetEntityProxy, NetworkId, this);
 }
 
 bool UFlecsNetEntityProxy::IsEmpty() const
