@@ -2,8 +2,8 @@
 
 #pragma once
 
-
 #include "UObject/Object.h"
+#include "Net/Core/PushModel/PushModelMacros.h"
 
 #include "Networking/Layout/FlecsReplicationLayoutDefinition.h"
 #include "Networking/Layout/FlecsReplicationSnapshot.h"
@@ -20,7 +20,6 @@ UCLASS(Abstract, BlueprintType, NotBlueprintable)
 class UNREALFLECSNETWORKING_API UFlecsReplicationBridgeBase : public UObject
 {
 	GENERATED_BODY()
-
 public:
 	UFlecsReplicationBridgeBase(const FObjectInitializer& ObjectInitializer);
 	virtual ~UFlecsReplicationBridgeBase() override;
@@ -48,18 +47,22 @@ public:
 	 **/
 	virtual void PublishNetEntity(
 		const FFlecsEntityHandle& EntityHandle,
-		const FFlecsNetworkId& InNetworkId,
+		const FFlecsNetworkId InNetworkId,
 		const FFlecsEntityReplicationSnapshot& InSnapshot)
 		PURE_VIRTUAL(UFlecsReplicationBridgeBase::PublishNetEntity, );
 	
 	virtual void ReceiveNetEntity(const FFlecsNetworkId& InNetworkId, const FFlecsEntityReplicationSnapshot& InSnapshot);
 	virtual void StopReplicatingEntity(const FFlecsEntityHandle& InEntityHandle) {}
 	
+	virtual void PublishDontFragmentComponent(const FFlecsNetworkId InNetworkId, 
+		const TSolidNotNull<const uint8*> InComponentData, const FFlecsReplicationKey& InReplicationKey)
+		PURE_VIRTUAL(UFlecsReplicationBridgeBase::PublishDontFragmentComponent, );
+	
 	virtual void HandleProtocolError(const FString& InErrorMessage);
 
 	/** Resolves the generic storage object selected by the entity's profile. */
 	virtual NO_DISCARD UFlecsNetShardBase* ResolveShard(const FFlecsEntityHandle& InEntity,
-		const FFlecsNetworkId& InNetworkId, const FFlecsEntityReplicationSnapshot& InSnapshot)
+		const FFlecsNetworkId InNetworkId, const FFlecsEntityReplicationSnapshot& InSnapshot)
 		PURE_VIRTUAL(UFlecsReplicationBridgeBase::ResolveShard, return nullptr;);
 
 	void SetNetworkWorldSubsystem(UFlecsNetworkWorldSubsystem* InNetworkWorldSubsystem);

@@ -20,7 +20,7 @@ void UFlecsNetEntityTable::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>&
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	FDoRepLifetimeParams LifetimeParams;
-	LifetimeParams.bIsPushBased = false;
+	LifetimeParams.bIsPushBased = true;
 	DOREPLIFETIME_WITH_PARAMS_FAST(UFlecsNetEntityTable, EntityTable, LifetimeParams);
 }
 
@@ -64,7 +64,8 @@ void UFlecsNetEntityTable::PublishNetEntity(const FFlecsNetworkId& InNetworkId,
 	EntityTable.MarkItemDirty(NewItem);
 }
 
-void UFlecsNetEntityTable::RemoveNetEntity(const FFlecsNetworkId& InNetworkId)
+// @TODO: Handle Destruction
+void UFlecsNetEntityTable::RemoveNetEntity(const FFlecsNetworkId& InNetworkId, const bool bInIsBeingDestroyed)
 {
 	const int32 RemovedIndex = EntityTable.Items.IndexOfByPredicate(
 		[&InNetworkId](const FFlecsNetEntityTableItem& Item)

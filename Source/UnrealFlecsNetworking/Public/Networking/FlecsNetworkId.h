@@ -89,6 +89,7 @@ public:
 };
 
 static_assert(sizeof(FFlecsNetworkId) == sizeof(uint64));
+static_assert(alignof(FFlecsNetworkId) == alignof(uint64));
 
 template <>
 struct TFlecsComponentTraits<FFlecsNetworkId> : public TFlecsComponentTraitsBase<FFlecsNetworkId>

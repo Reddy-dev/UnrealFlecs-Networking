@@ -14,8 +14,7 @@ void FFlecsNetEntityTableArray::SetOwner(const TSolidNotNull<UFlecsNetEntityTabl
 
 bool FFlecsNetEntityTableArray::NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms)
 {
-	return FFastArraySerializer::FastArrayDeltaSerialize<FFlecsNetEntityTableItem, FFlecsNetEntityTableArray>(
-		Items, DeltaParms, *this);
+	return FFastArraySerializer::FastArrayDeltaSerialize(Items, DeltaParms, *this);
 }
 
 void FFlecsNetEntityTableArray::PreReplicatedRemove(const TArrayView<int32>& RemovedIndices, int32)

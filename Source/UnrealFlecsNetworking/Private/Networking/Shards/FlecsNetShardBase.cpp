@@ -281,7 +281,7 @@ void UFlecsNetShardBase::FlushPendingReplicationUpdates()
 	}
 }
 
-void UFlecsNetShardBase::ReceiveEntityUpdate(const FFlecsNetworkId& InNetworkId, const FFlecsEntityReplicationSnapshot& InSnapshot)
+void UFlecsNetShardBase::ReceiveEntityUpdate(const FFlecsNetworkId InNetworkId, const FFlecsEntityReplicationSnapshot& InSnapshot)
 {
 	if (!InNetworkId.IsValid() || !InSnapshot.LayoutId.IsValid())
 	{
@@ -301,10 +301,13 @@ void UFlecsNetShardBase::ReceiveEntityUpdate(const FFlecsNetworkId& InNetworkId,
 	NetworkSubsystem->ReceiveNetworkEntitySnapshot(InNetworkId, InSnapshot);
 }
 
-void UFlecsNetShardBase::ReceiveEntityRemoval(const FFlecsNetworkId& InNetworkId, const uint32 InStateRevision)
+void UFlecsNetShardBase::ReceiveEntityRemoval(const FFlecsNetworkId InNetworkId, const uint32 InStateRevision)
 {
-	solid_checkf(InNetworkId.IsValid(), TEXT("Invalid network id for entity removal"));
-
+	if (!InNetworkId.IsValid())
+	{
+		return;
+	}
+	
 	ResolveOwningNetworkWorldSubsystem();
 	UFlecsNetworkWorldSubsystem* NetworkSubsystem = GetOwningNetworkWorldSubsystem();
 	

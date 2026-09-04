@@ -72,7 +72,7 @@ public:
 		PURE_VIRTUAL(UFlecsNetShardBase::PublishNetEntity, );
 
 	/** Removes one replicated entity without tearing down the physical shard. */
-	virtual void RemoveNetEntity(const FFlecsNetworkId& InNetworkId)
+	virtual void RemoveNetEntity(const FFlecsNetworkId& InNetworkId, const bool bInIsBeingDestroyed)
 		PURE_VIRTUAL(UFlecsNetShardBase::RemoveNetEntity, );
 
 	/** Whether the physical shard contains no replicated entities. */
@@ -92,8 +92,8 @@ public:
 	NO_DISCARD const FFlecsEntityView& GetReplicationProfile() const;
 
 protected:
-	void ReceiveEntityUpdate(const FFlecsNetworkId& InNetworkId, const FFlecsEntityReplicationSnapshot& InSnapshot);
-	void ReceiveEntityRemoval(const FFlecsNetworkId& InNetworkId, uint32 InStateRevision);
+	void ReceiveEntityUpdate(const FFlecsNetworkId InNetworkId, const FFlecsEntityReplicationSnapshot& InSnapshot);
+	void ReceiveEntityRemoval(const FFlecsNetworkId InNetworkId, uint32 InStateRevision);
 
 	void ResolveOwningNetworkWorldSubsystem();
 	void HandleWorldPreActorTick(UWorld* InWorld, ELevelTick, float);

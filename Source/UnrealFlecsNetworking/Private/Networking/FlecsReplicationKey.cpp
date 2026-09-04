@@ -196,14 +196,16 @@ TValueOrError<FFlecsReplicationKey, FString> FFlecsReplicationKey::BuildKey(
 			return MakeError("Neither component in the pair is eligible for storage");
 		}
 		
-		const TValueOrError<FFlecsReplicationIndividualKey, FString> FirstKeyResult = FFlecsReplicationIndividualKey::BuildIndividualKey(InWorld, FirstId);
-		if UNLIKELY_IF(!FirstKeyResult.IsValid())
+		const TValueOrError<FFlecsReplicationIndividualKey, FString> FirstKeyResult
+			= FFlecsReplicationIndividualKey::BuildIndividualKey(InWorld, FirstId);
+		
+		if UNLIKELY_IF(FirstKeyResult.HasError())
 		{
 			return MakeError(FString::Printf(TEXT("Failed to build first individual key: %s"), *FirstKeyResult.GetError()));
 		}
 		
 		const TValueOrError<FFlecsReplicationIndividualKey, FString> SecondKeyResult = FFlecsReplicationIndividualKey::BuildIndividualKey(InWorld, SecondId);
-		if UNLIKELY_IF(!SecondKeyResult.IsValid())
+		if UNLIKELY_IF(SecondKeyResult.HasError())
 		{
 			return MakeError(FString::Printf(TEXT("Failed to build second individual key: %s"), *SecondKeyResult.GetError()));
 		}
@@ -218,9 +220,10 @@ TValueOrError<FFlecsReplicationKey, FString> FFlecsReplicationKey::BuildKey(
 	}
 	else
 	{
-		const TValueOrError<FFlecsReplicationIndividualKey, FString> IndividualKeyResult = FFlecsReplicationIndividualKey::BuildIndividualKey(InWorld, InId);
+		const TValueOrError<FFlecsReplicationIndividualKey, FString> IndividualKeyResult 
+			= FFlecsReplicationIndividualKey::BuildIndividualKey(InWorld, InId);
 		
-		if UNLIKELY_IF(!IndividualKeyResult.IsValid())
+		if UNLIKELY_IF(IndividualKeyResult.HasError())
 		{
 			return MakeError(FString::Printf(TEXT("Failed to build individual key: %s"), *IndividualKeyResult.GetError()));
 		}
@@ -231,9 +234,15 @@ TValueOrError<FFlecsReplicationKey, FString> FFlecsReplicationKey::BuildKey(
 
 		const FFlecsComponentReplicationDescriptor* Descriptor =
 			FFlecsComponentReplicationRegistry::Get(InWorld->GetFlecsWorld()).Find(InId);
-		Result.StorageKind = Descriptor && Descriptor->IsStorageEligible()
-			? EFlecsReplicationKeyStorageKind::Primary
-			: EFlecsReplicationKeyStorageKind::None;
+		
+		if (Descriptor && Descriptor->IsStorageEligible())
+		{
+			Result.StorageKind = EFlecsReplicationKeyStorageKind::Primary;
+		}
+		else
+		{
+			Result.StorageKind = EFlecsReplicationKeyStorageKind::None;
+		}
 
 		return MakeValue(Result);
 	}

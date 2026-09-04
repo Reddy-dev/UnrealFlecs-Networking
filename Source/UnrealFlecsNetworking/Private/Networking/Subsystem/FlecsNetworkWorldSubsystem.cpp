@@ -136,8 +136,11 @@ void UFlecsNetworkWorldSubsystem::RegisterIndividualComponentDirtyObserver(const
 		return;
 	}
 	
-	if UNLIKELY_IF(!InDescriptor.IsValid())
+	const TValueOrError<void, FString> VerifyOutcome = InDescriptor.Verify();
+	if (VerifyOutcome.HasError())
 	{
+		UE_LOG(LogFlecsWorld, Error, 
+			TEXT("Component replication descriptor verification failed: %s"), *VerifyOutcome.GetError());
 		return;
 	}
 	
@@ -146,73 +149,13 @@ void UFlecsNetworkWorldSubsystem::RegisterIndividualComponentDirtyObserver(const
 		return;
 	}
 	
-	auto CreateObserver = [this](
-		const FFlecsId InFirstId,
-		const FFlecsId InSecondId = FFlecsId()) -> FFlecsObserverHandle
+	if (InDescriptor.IsDontFragment())
 	{
-		TFlecsObserverBuilder<> ObserverBuilder = GetFlecsWorld()->CreateObserver();
-		
-		const FFlecsEntityHandle FirstEntity = GetFlecsWorldChecked()->GetAlive(InFirstId);
-		const FFlecsEntityHandle SecondEntity = GetFlecsWorldChecked()->GetAlive(InSecondId);
-		
-		if (FirstEntity.Has(flecs::Relationship) && !InSecondId.IsValid())
-		{
-			return FFlecsObserverHandle();
-		}
-		
-		if (!InFirstId.IsValid() && (SecondEntity.IsValid() && SecondEntity.Has(flecs::Target)))
-		{
-			return FFlecsObserverHandle();
-		}
-
-		if (InSecondId.IsValid())
-		{
-			ObserverBuilder.WithPair(InFirstId, InSecondId);
-		}
-		else
-		{
-			ObserverBuilder.With(InFirstId);
-		}
-
-		const FFlecsObserverHandle DirtyObserverHandle = ObserverBuilder
-			.With<FFlecsReplicatedEntityComponent>().Filter()
-			.Event(flecs::OnSet)
-			.Event(flecs::OnAdd)
-			.Event(flecs::OnRemove)
-			.each([this](flecs::iter& Iter, size_t Index)
-			{
-				const FFlecsEntityHandle EntityHandle = Iter.entity(Index);
-				solid_check(EntityHandle.IsValid());
-				
-				EntityHandle.Add<FFlecsNetDirtyTag>();
-			});
-		
-		solid_check(DirtyObserverHandle.IsValid());
-		DirtyObserverHandle.Add<FFlecsDirtyObserverTag>();
-		
-		return DirtyObserverHandle;
-	};
-	
-	const FFlecsObserverHandle PrimaryObserverHandle = CreateObserver(InDescriptor.LocalFlecsId);
-	const FFlecsObserverHandle PairFirstObserverHandle = CreateObserver(InDescriptor.LocalFlecsId, flecs::Wildcard);
-	/*const FFlecsObserverHandle PairSecondObserverHandle =
-		CreateObserver(flecs::Wildcard, InDescriptor.LocalFlecsId);*/
-	
-	if (PrimaryObserverHandle.IsValid())
-	{
-		ComponentDirtyObservers.Add(PrimaryObserverHandle);
+		RegisterDontFragmentIndividualComponentDirtyObservers(InDescriptor);
 	}
-	
-	if (PairFirstObserverHandle.IsValid())
+	else
 	{
-		ComponentDirtyObservers.Add(PairFirstObserverHandle);
-	}
-	
-	if (!PrimaryObserverHandle.IsValid() && !PairFirstObserverHandle.IsValid())
-	{
-		UE_LOGFMT(LogFlecsCore, Error,
-			"Failed to register dirty observer for component '%s' (Flecs ID: %s)",
-			*InDescriptor.StableName, *InDescriptor.LocalFlecsId.ToString());
+		RegisterFragmentingIndividualComponentDirtyObservers(InDescriptor);
 	}
 	
 	/*ComponentDirtyObservers.Add(PairSecondObserverHandle);*/
@@ -496,6 +439,164 @@ void UFlecsNetworkWorldSubsystem::ApplyQueuedReplicationUpdates(const TSolidNotN
 
 	ApplyPendingLayoutDefinitions(InWorld);
 	ApplyDeferredEntityLayouts();
+}
+
+void UFlecsNetworkWorldSubsystem::RegisterFragmentingIndividualComponentDirtyObservers(const FFlecsComponentReplicationDescriptor& InDescriptor)
+{
+	auto CreateObserver = [this](
+		const FFlecsId InFirstId,
+		const FFlecsId InSecondId = FFlecsId()) -> FFlecsObserverHandle
+	{
+		TFlecsObserverBuilder<> ObserverBuilder = GetFlecsWorld()->CreateObserver();
+		
+		const FFlecsEntityHandle FirstEntity = GetFlecsWorldChecked()->GetAlive(InFirstId);
+		const FFlecsEntityHandle SecondEntity = GetFlecsWorldChecked()->GetAlive(InSecondId);
+		
+		if (FirstEntity.Has(flecs::Relationship) && !InSecondId.IsValid())
+		{
+			return FFlecsObserverHandle();
+		}
+		
+		if (!InFirstId.IsValid() && (SecondEntity.IsValid() && SecondEntity.Has(flecs::Target)))
+		{
+			return FFlecsObserverHandle();
+		}
+
+		if (InSecondId.IsValid())
+		{
+			ObserverBuilder.WithPair(InFirstId, InSecondId);
+		}
+		else
+		{
+			ObserverBuilder.With(InFirstId);
+		}
+
+		const FFlecsObserverHandle DirtyObserverHandle = ObserverBuilder
+			.With<FFlecsReplicatedEntityComponent>().Filter()
+			.Event(flecs::OnSet)
+			.Event(flecs::OnAdd)
+			.Event(flecs::OnRemove)
+			.each([this](flecs::iter& Iter, size_t Index)
+			{
+				const FFlecsEntityHandle EntityHandle = Iter.entity(Index);
+				solid_check(EntityHandle.IsValid());
+				
+				EntityHandle.Add<FFlecsNetDirtyTag>();
+			});
+		
+		solid_check(DirtyObserverHandle.IsValid());
+		DirtyObserverHandle.Add<FFlecsDirtyObserverTag>();
+		
+		return DirtyObserverHandle;
+	};
+	
+	const FFlecsObserverHandle PrimaryObserverHandle = CreateObserver(InDescriptor.LocalFlecsId);
+	const FFlecsObserverHandle PairFirstObserverHandle = CreateObserver(InDescriptor.LocalFlecsId, flecs::Wildcard);
+	/*const FFlecsObserverHandle PairSecondObserverHandle =
+		CreateObserver(flecs::Wildcard, InDescriptor.LocalFlecsId);*/
+	
+	if (PrimaryObserverHandle.IsValid())
+	{
+		ComponentDirtyObservers.Add(PrimaryObserverHandle);
+	}
+	
+	if (PairFirstObserverHandle.IsValid())
+	{
+		ComponentDirtyObservers.Add(PairFirstObserverHandle);
+	}
+	
+	if UNLIKELY_IF(!PrimaryObserverHandle.IsValid() && !PairFirstObserverHandle.IsValid())
+	{
+		UE_LOGFMT(LogFlecsCore, Error,
+			"Failed to register dirty observer for component '%s' (Flecs ID: %s)",
+			*InDescriptor.StableName, *InDescriptor.LocalFlecsId.ToString());
+	}
+}
+
+void UFlecsNetworkWorldSubsystem::RegisterDontFragmentIndividualComponentDirtyObservers(const FFlecsComponentReplicationDescriptor& InDescriptor)
+{
+	auto CreateObserver = [this, InDescriptor](const FFlecsId InId) -> FFlecsObserverHandle
+	{
+		const bool bIsPair = InId.IsPair();
+
+		const FFlecsEntityHandle FirstEntity = GetFlecsWorldChecked()->GetAlive(bIsPair ? InId.GetFirst() : InId);
+		const FFlecsEntityHandle SecondEntity = bIsPair ? GetFlecsWorldChecked()->GetAlive(InId.GetSecond()) : FFlecsEntityHandle();
+		
+		// If the first entity is a relationship and the Id is not a pair, we don't want to create an observer for it
+		if (FirstEntity.Has(flecs::Relationship) && !bIsPair)
+		{
+			return FFlecsObserverHandle();
+		}
+		
+		// If the second entity is a target and the first entity is a wildcard, we don't want to create an observer for it
+		if (!InId.IsValid() && (SecondEntity.IsValid() && SecondEntity.Has(flecs::Target)))
+		{
+			return FFlecsObserverHandle();
+		}
+		
+		auto ReplicationKeyOutcome 
+			= FFlecsReplicationKey::BuildKey(GetFlecsWorldChecked(), InId);
+		
+		if UNLIKELY_IF(ReplicationKeyOutcome.HasError())
+		{
+			UE_LOGFMT(LogFlecsCore, Error,
+				"Failed to build replication key for component '{0}' (Flecs ID: {1}): {2}",
+				*InDescriptor.StableName, *InDescriptor.LocalFlecsId.ToString(), *ReplicationKeyOutcome.GetError());
+			return FFlecsObserverHandle();
+		}
+		
+		FFlecsReplicationKey ReplicationKey = ReplicationKeyOutcome.GetValue();
+
+		const FFlecsObserverHandle DirtyObserverHandle = GetFlecsWorldChecked()->CreateObserver()
+			.With(InId) // 0
+			.With<FFlecsReplicatedEntityComponent>().Filter() // 1
+			.With<const FFlecsNetworkId>().Filter() // 2
+			.Event(flecs::OnSet)
+			.Event(flecs::OnAdd)
+			.Event(flecs::OnRemove)
+			.each([this, ReplicationKey](flecs::iter& Iter, size_t Index)
+			{
+				const FFlecsEntityHandle EntityHandle = Iter.entity(Index);
+				solid_check(EntityHandle.IsValid());
+				
+				const FFlecsNetworkId NetworkId = Iter.field_at<const FFlecsNetworkId>(Index, 2);
+				
+				const void* ComponentPtr = Iter.field_at(Index, 0);
+				const TSolidNotNull<const uint8*> ComponentDataPtr = reinterpret_cast<const uint8*>(ComponentPtr);
+				
+				GetReplicationBridge()->PublishDontFragmentComponent(NetworkId, 
+					ComponentDataPtr, ReplicationKey);
+			});
+		
+		// your observer builder failed
+		solid_check(DirtyObserverHandle.IsValid());
+		
+		DirtyObserverHandle.Add<FFlecsDirtyObserverTag>();
+		
+		return DirtyObserverHandle;
+	};
+	
+	const FFlecsObserverHandle PrimaryObserverHandle = CreateObserver(InDescriptor.LocalFlecsId);
+	
+	const FFlecsObserverHandle PairFirstObserverHandle = CreateObserver(
+		FFlecsId::MakePair(InDescriptor.LocalFlecsId, flecs::Wildcard));
+	
+	if (PrimaryObserverHandle.IsValid())
+	{
+		ComponentDirtyObservers.Add(PrimaryObserverHandle);
+	}
+	
+	if (PairFirstObserverHandle.IsValid())
+	{
+		ComponentDirtyObservers.Add(PairFirstObserverHandle);
+	}
+	
+	if UNLIKELY_IF(!PrimaryObserverHandle.IsValid() && !PairFirstObserverHandle.IsValid())
+	{
+		UE_LOGFMT(LogFlecsCore, Error,
+			"Failed to register dirty observer for component '%s' (Flecs ID: %s)",
+			*InDescriptor.StableName, *InDescriptor.LocalFlecsId.ToString());
+	}
 }
 
 FFlecsEntityHandle UFlecsNetworkWorldSubsystem::RegisterReplicationProfileAsset(const UFlecsReplicationProfileDataAsset* InAsset)

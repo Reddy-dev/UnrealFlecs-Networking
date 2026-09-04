@@ -28,11 +28,10 @@ void UFlecsTestReplicationBridge::PublishEntityLayout(
 }
 
 void UFlecsTestReplicationBridge::PublishNetEntity(
-	const FFlecsEntityHandle& InEntityHandle,
-	const FFlecsNetworkId& InNetworkId,
+	MAYBE_UNUSED const FFlecsEntityHandle& InEntityHandle,
+	const FFlecsNetworkId InNetworkId,
 	const FFlecsEntityReplicationSnapshot& InSnapshot)
 {
-	(void)InEntityHandle;
 	PublishedSnapshots.Emplace(InNetworkId, InSnapshot);
 
 	if (Peer)

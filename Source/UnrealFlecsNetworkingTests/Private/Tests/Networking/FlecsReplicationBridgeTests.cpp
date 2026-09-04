@@ -261,7 +261,7 @@ FLECS_REPLICATION_TEST_CLASS_WITH_FLAGS_AND_TAGS(FlecsReplicationBridgeTests,
 		ASSERT_THAT(IsTrue(Proxy->CanAcceptNetEntity(NetworkId, Snapshot)));
 		ASSERT_THAT(IsFalse(Proxy->CanAcceptNetEntity(FFlecsNetworkId(19, 3), Snapshot)));
 
-		Proxy->RemoveNetEntity(NetworkId);
+		Proxy->RemoveNetEntity(NetworkId, false);
 		ASSERT_THAT(IsTrue(Proxy->IsEmpty()));
 	}
 

@@ -19,11 +19,11 @@ public:
 	virtual void PublishEntityLayout(const FFlecsReplicationLayoutDefinition& InLayoutDefinition) override;
 	virtual void PublishNetEntity(
 		const FFlecsEntityHandle& InEntityHandle,
-		const FFlecsNetworkId& InNetworkId,
+		const FFlecsNetworkId InNetworkId,
 		const FFlecsEntityReplicationSnapshot& InSnapshot) override;
 	virtual NO_DISCARD UFlecsNetShardBase* ResolveShard(
 		const FFlecsEntityHandle&,
-		const FFlecsNetworkId&,
+		const FFlecsNetworkId,
 		const FFlecsEntityReplicationSnapshot&) override
 	{
 		return nullptr;

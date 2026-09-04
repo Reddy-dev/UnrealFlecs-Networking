@@ -69,15 +69,19 @@ void UFlecsNetEntityProxy::PublishNetEntity(const FFlecsNetworkId& InNetworkId, 
 	MARK_PROPERTY_DIRTY_FROM_NAME(UFlecsNetEntityProxy, Snapshot, this);
 }
 
-void UFlecsNetEntityProxy::RemoveNetEntity(const FFlecsNetworkId& InNetworkId)
+// @TODO: Handle the case where the entity is being destroyed, and we need to notify the server that it has been removed.
+void UFlecsNetEntityProxy::RemoveNetEntity(const FFlecsNetworkId& InNetworkId, const bool bInIsBeingDestroyed)
 {
 	solid_checkf(bContainsEntity && NetworkId == InNetworkId,
 		TEXT("Cannot remove network ID '%s' from Flecs entity proxy '%s'"),
 		*InNetworkId.ToString(), *GetName());
 
 	bContainsEntity = false;
-	NetworkId = FFlecsNetworkId();
-	MARK_PROPERTY_DIRTY_FROM_NAME(UFlecsNetEntityProxy, NetworkId, this);
+	
+	if (!bInIsBeingDestroyed)
+	{
+		
+	}
 }
 
 bool UFlecsNetEntityProxy::IsEmpty() const

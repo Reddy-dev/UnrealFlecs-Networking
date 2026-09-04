@@ -14,6 +14,7 @@
 
 #include "FlecsIrisReplicationBridge.generated.h"
 
+class UFlecsDontFragmentTable;
 /**
  * Always-relevant Iris root object coordinating Flecs replication.
  */
@@ -81,6 +82,11 @@ class UNREALFLECSNETWORKING_API UFlecsIrisReplicationBridge : public UFlecsRepli
 public:
 	UFlecsIrisReplicationBridge(const FObjectInitializer& ObjectInitializer);
 	virtual void PostInitProperties() override;
+	
+	virtual bool IsSupportedForNetworking() const override
+	{
+		return true;
+	}
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void RegisterReplicationFragments(UE::Net::FFragmentRegistrationContext& Fragments,
@@ -95,12 +101,15 @@ public:
 
 	void ReceiveLayout(const FFlecsReplicationLayoutDefinition& InLayoutDefinition);
 	
-	virtual void PublishNetEntity(const FFlecsEntityHandle& EntityHandle, const FFlecsNetworkId& InNetworkId,
-		const FFlecsEntityReplicationSnapshot& InSnapshot);
+	virtual void PublishNetEntity(const FFlecsEntityHandle& EntityHandle, const FFlecsNetworkId InNetworkId,
+		const FFlecsEntityReplicationSnapshot& InSnapshot) override;
+	virtual void PublishDontFragmentComponent(const FFlecsNetworkId InNetworkId,
+		const TSolidNotNull<const uint8*> InComponentData, const FFlecsReplicationKey& InReplicationKey) override;
+	
 	virtual void StopReplicatingEntity(const FFlecsEntityHandle& InEntityHandle) override;
 	
 	virtual NO_DISCARD UFlecsNetShardBase* ResolveShard(const FFlecsEntityHandle& InEntityHandle,
-		const FFlecsNetworkId& InNetworkId, const FFlecsEntityReplicationSnapshot& InSnapshot);
+		const FFlecsNetworkId InNetworkId, const FFlecsEntityReplicationSnapshot& InSnapshot) override;
 
 	NO_DISCARD const FFlecsReplicatorFastArray& GetReplicatedLayouts() const
 	{
@@ -118,6 +127,10 @@ protected:
 		const FFlecsEntityView& InProfile,
 		const FFlecsReplicationShardSelection& InSelection);
 	
+	NO_DISCARD UFlecsDontFragmentTable* CreateDontFragmentTable(const FFlecsReplicationKey& InReplicationKey);
+	
+	NO_DISCARD UFlecsDontFragmentTable* FindOrCreateDontFragmentTable(const FFlecsReplicationKey& InReplicationKey);
+	
 	void ReleaseShardIfEmpty(UFlecsNetShardBase* InShard,
 		const FFlecsEntityView& InProfile,
 		const FFlecsReplicationShardSelection& InSelection);
@@ -129,6 +142,7 @@ protected:
 	TMap<FFlecsEntityView, FFlecsReplicationShardPlacement> ShardMap;
 
 	TMap<FFlecsReplicationShardPoolKey, TArray<TObjectPtr<UFlecsNetShardBase>>> ShardPools;
+	TMap<FFlecsReplicationKey, 
 
 	UE::Net::FNetRootObjectAdapter RootObjectAdapter;
 	

@@ -2,7 +2,6 @@
 
 #pragma once
 
-
 #include "Networking/FlecsNetworkId.h"
 #include "Networking/Layout/FlecsReplicationSnapshot.h"
 
@@ -20,7 +19,7 @@ struct FFlecsReplicationQueuedUpdate
 class FFlecsReplicationUpdateQueue
 {
 public:
-	void EnqueueSnapshot(const FFlecsNetworkId& InNetworkId, const FFlecsEntityReplicationSnapshot& InSnapshot)
+	UE_FORCEINLINE_HINT void EnqueueSnapshot(const FFlecsNetworkId& InNetworkId, const FFlecsEntityReplicationSnapshot& InSnapshot)
 	{
 		FFlecsReplicationQueuedUpdate* ExistingUpdate = FindPendingUpdate(InNetworkId);
 		
@@ -44,7 +43,7 @@ public:
 		Update.bRemove = false;
 	}
 
-	void EnqueueRemoval(const FFlecsNetworkId& InNetworkId, const uint32 InStateRevision)
+	UE_FORCEINLINE_HINT void EnqueueRemoval(const FFlecsNetworkId& InNetworkId, const uint32 InStateRevision)
 	{
 		FFlecsReplicationQueuedUpdate* ExistingUpdate = FindPendingUpdate(InNetworkId);
 		if (ExistingUpdate)
@@ -66,17 +65,17 @@ public:
 		Update.bRemove = true;
 	}
 
-	NO_DISCARD TArray<FFlecsReplicationQueuedUpdate> Drain()
+	NO_DISCARD UE_FORCEINLINE_HINT TArray<FFlecsReplicationQueuedUpdate> Drain()
 	{
 		return MoveTemp(Updates);
 	}
 
-	NO_DISCARD int32 Num() const
+	NO_DISCARD UE_FORCEINLINE_HINT int32 Num() const
 	{
 		return Updates.Num();
 	}
 
-	void Reset()
+	UE_FORCEINLINE_HINT void Reset()
 	{
 		Updates.Reset();
 	}

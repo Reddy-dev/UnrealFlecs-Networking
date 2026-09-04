@@ -23,7 +23,7 @@ public:
 	virtual NO_DISCARD bool CanAcceptNetEntity(const FFlecsNetworkId& InNetworkId,
 		const FFlecsEntityReplicationSnapshot&) const override;
 	virtual void PublishNetEntity(const FFlecsNetworkId& InNetworkId, const FFlecsEntityReplicationSnapshot& InSnapshot) override;
-	virtual void RemoveNetEntity(const FFlecsNetworkId& InNetworkId) override;
+	virtual void RemoveNetEntity(const FFlecsNetworkId& InNetworkId, const bool bInIsBeingDestroyed) override;
 	virtual bool IsEmpty() const override;
 
 	void HandleReplicationDetached();

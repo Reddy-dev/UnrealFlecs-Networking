@@ -32,54 +32,64 @@ namespace
 		}
 	}
 
-	bool ValidateProperty(const FProperty* Property, TSet<const UStruct*>& Visited, FString& OutError)
+	TValueOrError<void, FString> ValidateProperty(const FProperty* Property, TSet<const UStruct*>& Visited)
 	{
 		if (Property->IsA<FSoftObjectProperty>() || Property->IsA<FSoftClassProperty>())
 		{
-			return true;
+			return MakeValue();
 		}
 		
 		if (Property->IsA<FObjectPropertyBase>() || Property->IsA<FInterfaceProperty>())
 		{
-			OutError = FString::Printf(TEXT("Raw UObject reference property '%s' is not supported"), *Property->GetPathName());
-			return false;
+			return MakeError(FString::Printf(TEXT("Raw UObject reference property '%s' is not supported"),
+				*Property->GetPathName()));
 		}
 		
 		if (const FArrayProperty* ArrayProperty = CastField<FArrayProperty>(Property))
 		{
-			return ValidateProperty(ArrayProperty->Inner, Visited, OutError);
+			return ValidateProperty(ArrayProperty->Inner, Visited);
 		}
 		
 		if (const FSetProperty* SetProperty = CastField<FSetProperty>(Property))
 		{
-			return ValidateProperty(SetProperty->ElementProp, Visited, OutError);
+			return ValidateProperty(SetProperty->ElementProp, Visited);
 		}
 		
 		if (const FMapProperty* MapProperty = CastField<FMapProperty>(Property))
 		{
-			return ValidateProperty(MapProperty->KeyProp, Visited, OutError)
-				&& ValidateProperty(MapProperty->ValueProp, Visited, OutError);
+			const TValueOrError<void, FString> KeyResult = ValidateProperty(MapProperty->KeyProp, Visited);
+			if (KeyResult.HasError())
+			{
+				return MakeError(KeyResult.GetError());
+			}
+			
+			const TValueOrError<void, FString> ValueResult = ValidateProperty(MapProperty->ValueProp, Visited);
+			if (ValueResult.HasError())
+			{
+				return MakeError(ValueResult.GetError());
+			}
 		}
 		
 		if (const FStructProperty* StructProperty = CastField<FStructProperty>(Property))
 		{
 			if (Visited.Contains(StructProperty->Struct))
 			{
-				return true;
+				return MakeValue();
 			}
 			
 			Visited.Add(StructProperty->Struct);
 			
 			for (TFieldIterator<FProperty> It(StructProperty->Struct); It; ++It)
 			{
-				if (!ValidateProperty(*It, Visited, OutError))
+				const TValueOrError<void, FString> Result = ValidateProperty(*It, Visited); 
+				if (Result.HasError())
 				{
-					return false;
+					return MakeError(Result.GetError());
 				}
 			}
 		}
 		
-		return true;
+		return MakeValue();
 	}
 	
 } // namespace
@@ -108,39 +118,29 @@ FFlecsReplicationSchemaId FFlecsReplicationSchemaId::FromStableName(const FStrin
 	return FFlecsReplicationSchemaId(Guid);
 }
 
-bool FFlecsComponentReplicationDescriptor::IsValid(FString* OutError) const
+TValueOrError<void, FString> FFlecsComponentReplicationDescriptor::Verify() const
 {
-	auto Fail = [OutError](const TCHAR* Error)
-	{
-		if (OutError)
-		{
-			*OutError = Error;
-		}
-		
-		return false;
-	};
-	
 	if (StableName.IsEmpty() || !SchemaId.IsValid())
 	{
-		return Fail(TEXT("Replication stable name/schema ID is missing"));
+		return MakeError(TEXT("Replication stable name/schema ID is missing"));
 	}
 	
 	if (!LocalFlecsId.IsValid())
 	{
-		return Fail(TEXT("Local Flecs ID is invalid"));
+		return MakeError(TEXT("Local Flecs ID is invalid"));
 	}
 	
 	if (!bIsTag && (Size == 0 || Alignment == 0))
 	{
-		return Fail(TEXT("Data component size/alignment is invalid"));
+		return MakeError(TEXT("Data component size/alignment is invalid"));
 	}
 	
 	if (!bIsTag && (!Serialize || !Deserialize || !Construct || !Destroy))
 	{
-		return Fail(TEXT("Native replication operations are incomplete"));
+		return MakeError(TEXT("Native replication operations are incomplete"));
 	}
 	
-	return true;
+	return MakeValue();
 }
 
 FFlecsComponentReplicationRegistry& FFlecsComponentReplicationRegistry::Get(const TSolidNotNull<const UFlecsWorld*> World)
@@ -166,28 +166,33 @@ void FFlecsComponentReplicationRegistry::RemoveWorld(const UFlecsWorld* World)
 	}
 }
 
-bool FFlecsComponentReplicationRegistry::Register(const FFlecsComponentReplicationDescriptor& Descriptor, FString& OutError)
+TValueOrError<void, FString> FFlecsComponentReplicationRegistry::Register(const FFlecsComponentReplicationDescriptor& Descriptor)
 {
-	if (!Descriptor.IsValid(&OutError))
+	const TValueOrError<void, FString> IsValidOutcome = Descriptor.Verify();
+	if (IsValidOutcome.HasError())
 	{
-		return false;
+		return MakeError(IsValidOutcome.GetError());
 	}
 	
-	if (Descriptor.ScriptStruct && !ValidateReflectedType(Descriptor.ScriptStruct, OutError))
+	if (Descriptor.ScriptStruct)
 	{
-		return false;
+		const TValueOrError<void, FString> ValidationResult = ValidateReflectedType(Descriptor.ScriptStruct);
+		
+		if (ValidationResult.HasError())
+		{
+			return MakeError(ValidationResult.GetError());
+		}
 	}
 	
 	if (const FFlecsId* ExistingLocal = SchemaToLocalId.Find(Descriptor.SchemaId))
 	{
 		if (*ExistingLocal == Descriptor.LocalFlecsId)
 		{
-			return true;
+			return MakeValue();
 		}
 		
-		OutError = FString::Printf(TEXT("Duplicate replication schema ID %s for '%s'"),
-		                           *Descriptor.SchemaId.ToString(), *Descriptor.StableName);
-		return false;
+		return MakeError(FString::Printf(TEXT("Duplicate replication schema ID %s for '%s'"),
+		                           *Descriptor.SchemaId.ToString(), *Descriptor.StableName));
 	}
 	
 	const FFlecsId LocalId = Descriptor.LocalFlecsId;
@@ -197,7 +202,7 @@ bool FFlecsComponentReplicationRegistry::Register(const FFlecsComponentReplicati
 	ByLocalId.Add(LocalId, Descriptor);
 	DescriptorRegisteredDelegate.Broadcast(ByLocalId.FindChecked(LocalId));
 	
-	return true;
+	return MakeValue();
 }
 
 const FFlecsComponentReplicationDescriptor* FFlecsComponentReplicationRegistry::Find(const FFlecsId LocalId) const
@@ -218,20 +223,22 @@ const FFlecsComponentReplicationDescriptor* FFlecsComponentReplicationRegistry::
 	return LocalId ? ByLocalId.Find(*LocalId) : nullptr;
 }
 
-bool FFlecsComponentReplicationRegistry::ValidateReflectedType(const TSolidNotNull<const UScriptStruct*> ScriptStruct, FString& OutError)
+TValueOrError<void, FString> FFlecsComponentReplicationRegistry::ValidateReflectedType(
+	const TSolidNotNull<const UScriptStruct*> ScriptStruct)
 {
 	TSet<const UStruct*> Visited;
 	Visited.Add(ScriptStruct);
 	
 	for (TFieldIterator<FProperty> It(ScriptStruct); It; ++It)
 	{
-		if (!ValidateProperty(*It, Visited, OutError))
+		const TValueOrError<void, FString> Result = ValidateProperty(*It, Visited);
+		if UNLIKELY_IF(Result.HasError())
 		{
-			return false;
+			return MakeError(Result.GetError());
 		}
 	}
 	
-	return true;
+	return MakeValue();
 }
 
 bool FFlecsComponentReplicationRegistry::IsEntityReplicationEligible(const TSolidNotNull<const UFlecsWorld*> World,
@@ -248,10 +255,9 @@ bool FFlecsComponentReplicationRegistry::IsEntityReplicationEligible(const TSoli
 	return EntityHandle.IsValid() && (EntityHandle.Has<FFlecsNetworkId>() || EntityHandle.Has<FFlecsReplicatedTrait>());
 }
 
-bool UE::Flecs::Replication::RegisterComponentDefinition(
+TValueOrError<void, FString> UE::Flecs::Replication::RegisterComponentDefinition(
 	const TSolidNotNull<const UFlecsWorld*> InWorld,
-	const FFlecsReplicationComponentDefinition& InDefinition,
-	OUT FString* OutError)
+	const FFlecsReplicationComponentDefinition& InDefinition)
 {
 	FFlecsComponentReplicationDescriptor Descriptor;
 	Descriptor.StableName = InDefinition.StableName;
@@ -260,21 +266,22 @@ bool UE::Flecs::Replication::RegisterComponentDefinition(
 	Descriptor.Size = InDefinition.Size;
 	Descriptor.Alignment = InDefinition.Alignment;
 	Descriptor.bIsTag = InDefinition.bIsTag;
+	Descriptor.bDontFragment = InDefinition.bDontFragment;
 	Descriptor.ScriptStruct = InDefinition.ScriptStruct;
 	Descriptor.Serialize = InDefinition.Serialize;
 	Descriptor.Deserialize = InDefinition.Deserialize;
 	Descriptor.Construct = InDefinition.Construct;
 	Descriptor.Destroy = InDefinition.Destroy;
 
-	FString Error;
-	const bool bRegistered = FFlecsComponentReplicationRegistry::Get(InWorld).Register(MoveTemp(Descriptor), Error);
+	TValueOrError<void, FString> RegistrationOutcome
+		= FFlecsComponentReplicationRegistry::Get(InWorld).Register(MoveTemp(Descriptor));
 
-	if (OutError)
+	if (RegistrationOutcome.HasError())
 	{
-		*OutError = MoveTemp(Error);
+		return MakeError(RegistrationOutcome.GetError());
 	}
 
-	return bRegistered;
+	return MakeValue();
 }
 
 void UE::Flecs::Replication::MarkComponentReplicated(const FFlecsComponentHandle& InComponent)

@@ -17,4 +17,5 @@ struct UNREALFLECSNETWORKING_API FFlecsPredictedEntityTag
 template <>
 struct TFlecsComponentTraits<FFlecsPredictedEntityTag> : public TFlecsComponentTraitsBase<FFlecsPredictedEntityTag>
 {
+	static constexpr bool AutoRegister = false;
 }; // struct TFlecsComponentTraits<FFlecsPredictedEntityTag>

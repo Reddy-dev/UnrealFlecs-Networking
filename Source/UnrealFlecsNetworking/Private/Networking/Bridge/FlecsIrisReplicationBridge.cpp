@@ -156,13 +156,19 @@ void UFlecsIrisReplicationBridge::ReceiveLayout(const FFlecsReplicationLayoutDef
 	ReceiveEntityLayout(InLayoutDefinition);
 }
 
-void UFlecsIrisReplicationBridge::PublishNetEntity(const FFlecsEntityHandle& EntityHandle, const FFlecsNetworkId& InNetworkId,
+void UFlecsIrisReplicationBridge::PublishNetEntity(const FFlecsEntityHandle& EntityHandle, const FFlecsNetworkId InNetworkId,
 	const FFlecsEntityReplicationSnapshot& InSnapshot)
 {
 	solid_checkf(EntityHandle.IsValid(), TEXT("Cannot publish a Flecs entity without a valid entity handle"));
 	
 	const TSolidNotNull<UFlecsNetShardBase*> Shard = ResolveShard(EntityHandle, InNetworkId, InSnapshot);
 	Shard->PublishNetEntity(InNetworkId, InSnapshot);
+}
+
+void UFlecsIrisReplicationBridge::PublishDontFragmentComponent(const FFlecsNetworkId InNetworkId,
+	const TSolidNotNull<const uint8*> InComponentData, const FFlecsReplicationKey& InReplicationKey)
+{
+	
 }
 
 void UFlecsIrisReplicationBridge::StopReplicatingEntity(const FFlecsEntityHandle& InEntityHandle)
@@ -174,9 +180,9 @@ void UFlecsIrisReplicationBridge::StopReplicatingEntity(const FFlecsEntityHandle
 
 	if (const FFlecsReplicationShardPlacement* Placement = ShardMap.Find(InEntityHandle))
 	{
-		if (UFlecsNetShardBase* Shard = Placement->Shard.Get())
+		if (UFlecsNetShardBase* Shard = Placement->Shard)
 		{
-			Shard->RemoveNetEntity(Placement->NetworkId);
+			Shard->RemoveNetEntity(Placement->NetworkId, false);
 			ReleaseShardIfEmpty(Shard, Placement->Profile, Placement->Selection);
 		}
 
@@ -185,7 +191,7 @@ void UFlecsIrisReplicationBridge::StopReplicatingEntity(const FFlecsEntityHandle
 }
 
 UFlecsNetShardBase* UFlecsIrisReplicationBridge::ResolveShard(const FFlecsEntityHandle& InEntityHandle,
-	const FFlecsNetworkId& InNetworkId, const FFlecsEntityReplicationSnapshot& InSnapshot)
+	const FFlecsNetworkId InNetworkId, const FFlecsEntityReplicationSnapshot& InSnapshot)
 {
 	const TSolidNotNull<UFlecsNetworkWorldSubsystem*> NetworkSubsystem = GetNetworkWorldSubsystem();
 	
@@ -231,7 +237,7 @@ UFlecsNetShardBase* UFlecsIrisReplicationBridge::ResolveShard(const FFlecsEntity
 		
 		if (SourceShard && SourceShard != DestinationShard)
 		{
-			SourceShard->RemoveNetEntity(Placement->NetworkId);
+			SourceShard->RemoveNetEntity(Placement->NetworkId, false);
 			ReleaseShardIfEmpty(SourceShard, Placement->Profile, Placement->Selection);
 		}
 
@@ -291,8 +297,8 @@ UFlecsNetShardBase* UFlecsIrisReplicationBridge::CreateNewShard(const FFlecsNetw
 }
 
 UFlecsNetShardBase* UFlecsIrisReplicationBridge::FindOrCreateShard(const FFlecsNetworkId& InNetworkId,
-	const FFlecsEntityReplicationSnapshot& InSnapshot, const FFlecsEntityView& InProfile,
-	const FFlecsReplicationShardSelection& InSelection)
+                                                                   const FFlecsEntityReplicationSnapshot& InSnapshot, const FFlecsEntityView& InProfile,
+                                                                   const FFlecsReplicationShardSelection& InSelection)
 {
 	const FFlecsReplicationShardPoolKey PoolKey(InProfile, InSelection);
 	if (const TArray<TObjectPtr<UFlecsNetShardBase>>* Shards = ShardPools.Find(PoolKey))
@@ -316,8 +322,18 @@ UFlecsNetShardBase* UFlecsIrisReplicationBridge::FindOrCreateShard(const FFlecsN
 	return NewShard;
 }
 
+UFlecsDontFragmentTable* UFlecsIrisReplicationBridge::CreateDontFragmentTable(
+	const FFlecsReplicationKey& InReplicationKey)
+{
+}
+
+UFlecsDontFragmentTable* UFlecsIrisReplicationBridge::FindOrCreateDontFragmentTable(
+	const FFlecsReplicationKey& InReplicationKey)
+{
+}
+
 void UFlecsIrisReplicationBridge::ReleaseShardIfEmpty(UFlecsNetShardBase* InShard,
-	const FFlecsEntityView& InProfile, const FFlecsReplicationShardSelection& InSelection)
+                                                      const FFlecsEntityView& InProfile, const FFlecsReplicationShardSelection& InSelection)
 {
 	if (!InShard || !InShard->IsEmpty())
 	{

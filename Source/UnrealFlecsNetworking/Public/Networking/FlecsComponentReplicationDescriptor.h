@@ -106,7 +106,8 @@ struct UNREALFLECSNETWORKING_API FFlecsComponentReplicationDescriptor
 	uint32 Size = 0;
 	uint16 Alignment = 0;
 	
-	bool bIsTag = false;
+	uint8 bIsTag : 1 = false;
+	uint8 bDontFragment : 1 = false;
 	
 	TObjectPtr<UScriptStruct> ScriptStruct = nullptr;
 	
@@ -116,7 +117,7 @@ struct UNREALFLECSNETWORKING_API FFlecsComponentReplicationDescriptor
 	FFlecsReplicationDestroyFunction Destroy = nullptr;
 
 	/** Validates the complete local descriptor before it enters the registry. */
-	NO_DISCARD bool IsValid(OUT FString* OutError = nullptr) const;
+	NO_DISCARD TValueOrError<void, FString> Verify() const;
 	
 	NO_DISCARD FORCEINLINE FFlecsReplicationSchemaId GetSchemaId() const
 	{
@@ -146,6 +147,11 @@ struct UNREALFLECSNETWORKING_API FFlecsComponentReplicationDescriptor
 	NO_DISCARD FORCEINLINE bool IsTag() const
 	{
 		return bIsTag;
+	}
+	
+	NO_DISCARD FORCEINLINE bool IsDontFragment() const
+	{
+		return bDontFragment;
 	}
 	
 	NO_DISCARD FORCEINLINE bool IsScriptStruct() const
@@ -204,7 +210,7 @@ public:
 	static void RemoveWorld(const UFlecsWorld* World);
 
 	/** Adds a valid descriptor, rejecting schema IDs already owned by another local ID. */
-	bool Register(const FFlecsComponentReplicationDescriptor& Descriptor, OUT FString& OutError);
+	TValueOrError<void, FString> Register(const FFlecsComponentReplicationDescriptor& Descriptor);
 	
 	/** Finds a descriptor by a world-local Flecs ID. */
 	NO_DISCARD const FFlecsComponentReplicationDescriptor* Find(const FFlecsId LocalId) const;
@@ -223,7 +229,7 @@ public:
 	}
 
 	/** Rejects reflected types that contain unsupported raw object references. */
-	static NO_DISCARD bool ValidateReflectedType(const TSolidNotNull<const UScriptStruct*> ScriptStruct, FString& OutError);
+	static NO_DISCARD TValueOrError<void, FString> ValidateReflectedType(const TSolidNotNull<const UScriptStruct*> ScriptStruct);
 	
 	// @TODO: Poor name.
 	/**
@@ -242,22 +248,20 @@ private:
 
 namespace UE::Flecs::Replication
 {
-	UNREALFLECSNETWORKING_API bool RegisterComponentDefinition(
+	UNREALFLECSNETWORKING_API TValueOrError<void, FString> RegisterComponentDefinition(
 		const TSolidNotNull<const UFlecsWorld*> InWorld,
-		const FFlecsReplicationComponentDefinition& InDefinition,
-		OUT FString* OutError = nullptr);
+		const FFlecsReplicationComponentDefinition& InDefinition);
 
 	UNREALFLECSNETWORKING_API void MarkComponentReplicated(const FFlecsComponentHandle& InComponent);
 
 	/** Registers a replicated component through the networking module. */
 	template <typename T>
-	bool RegisterComponent(
+	TValueOrError<void, FString> RegisterComponent(
 		const TSolidNotNull<const UFlecsWorld*> InWorld,
-		const FFlecsComponentHandle& InComponent,
-		OUT FString* OutError = nullptr)
+		const FFlecsComponentHandle& InComponent)
 	{
 		const FFlecsReplicationComponentDefinition Definition = UE::Flecs::Replication::MakeComponentDefinition<T>(InComponent);
-		return RegisterComponentDefinition(InWorld, Definition, OutError);
+		return RegisterComponentDefinition(InWorld, Definition);
 	}
 	
 } // namespace UE::Flecs::Replication

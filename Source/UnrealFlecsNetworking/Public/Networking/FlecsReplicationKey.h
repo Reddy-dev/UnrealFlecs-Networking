@@ -14,7 +14,7 @@
 UENUM()
 enum class EFlecsReplicationKeyKind : uint8
 {
-	Component,
+	Component = 0,
 	Pair
 }; // enum class EFlecsReplicationKeyKind
 
@@ -23,7 +23,7 @@ UENUM()
 enum class EFlecsReplicationPairTargetKind : uint8
 {
 	// @TODO: Remove None
-	None,
+	None = 0,
 	Schema,
 	StableSymbolValue,
 	StablePathValue,
@@ -104,6 +104,23 @@ struct UNREALFLECSNETWORKING_API FFlecsReplicationKey
 {
 	GENERATED_BODY()
 	
+	NO_DISCARD friend uint32 GetTypeHash(const FFlecsReplicationKey& Key)
+	{
+		uint32 Hash = HashCombine(GetTypeHash(Key.Kind), GetTypeHash(Key.StorageKind));
+		
+		if (Key.Kind == EFlecsReplicationKeyKind::Component)
+		{
+			Hash = HashCombine(Hash, GetTypeHash(Key.Primary));
+		}
+		else if (Key.Kind == EFlecsReplicationKeyKind::Pair)
+		{
+			Hash = HashCombine(Hash, 
+				GetTypeHash(Key.Primary), GetTypeHash(Key.Secondary));
+		}
+		
+		return Hash;
+	}
+	
 	static NO_DISCARD EFlecsReplicationKeyStorageKind GetStorageKindForPair(
 		const TSolidNotNull<const UFlecsWorldInterfaceObject*> InWorld, 
 		const FFlecsId InPairId)
@@ -146,6 +163,7 @@ struct UNREALFLECSNETWORKING_API FFlecsReplicationKey
 	
 	friend bool operator==(const FFlecsReplicationKey&, const FFlecsReplicationKey&) = default;
 	
-	NO_DISCARD const FFlecsComponentReplicationDescriptor* TryGetStorageDescriptor(const TSolidNotNull<const UFlecsWorldInterfaceObject*> InWorld) const;
+	NO_DISCARD const FFlecsComponentReplicationDescriptor* TryGetStorageDescriptor(
+		const TSolidNotNull<const UFlecsWorldInterfaceObject*> InWorld) const;
 	
 }; // struct FFlecsReplicationKey

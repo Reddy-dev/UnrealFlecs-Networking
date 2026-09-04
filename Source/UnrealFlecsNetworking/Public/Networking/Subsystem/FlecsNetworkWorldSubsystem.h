@@ -169,6 +169,9 @@ public:
 
 protected:
 	
+	void RegisterFragmentingIndividualComponentDirtyObservers(const FFlecsComponentReplicationDescriptor& InDescriptor);
+	void RegisterDontFragmentIndividualComponentDirtyObservers(const FFlecsComponentReplicationDescriptor& InDescriptor);
+	
 	void ApplyReceivedNetworkEntitySnapshot(const FFlecsNetworkId& InNetworkId, const FFlecsEntityReplicationSnapshot& InSnapshot);
 	
 	void ApplyReceivedNetworkEntityRemoval(const FFlecsNetworkId& InNetworkId, uint32 InStateRevision);

@@ -18,4 +18,5 @@ struct FFlecsDirtyObserverTag
 template <>
 struct TFlecsComponentTraits<FFlecsDirtyObserverTag> : public TFlecsComponentTraitsBase<FFlecsDirtyObserverTag>
 {
+	static constexpr bool UseLowId = false;
 }; // struct TFlecsComponentTraits<FFlecsDirtyObserverTag>
