@@ -20,6 +20,7 @@
 #include "Networking/FlecsReplicationShardSelection.h"
 #include "Networking/Layout/FlecsReplicationSnapshot.h"
 #include "Networking/Profiles/FlecsReplicationProfileParamTypes.h"
+#include "Networking/Shards/FlecsDontFragmentTable.h"
 #include "Networking/Shards/FlecsNetEntityProxy.h"
 #include "Networking/Shards/FlecsNetEntityTable.h"
 #include "Networking/Subsystem/FlecsNetworkWorldSubsystem.h"
@@ -62,6 +63,7 @@ namespace UE::Flecs::Tests::MissingNetwork
 		}
 		
 		RegisterReplicationComponent<FFlecsReplicationTestDontFragmentValue>(World);
+		RegisterReplicationComponent<FFlecsReplicationTestDontFragmentTag>(World);
 		RegisterReplicationComponent<FFlecsReplicationTestNativeValue>(World);
 		RegisterReplicationComponent<FFlecsReplicationTestTag>(World);
 		RegisterReplicationComponent<FFlecsReplicationTestRequiredTag>(World);
@@ -127,6 +129,21 @@ namespace UE::Flecs::Tests::MissingNetwork
 	static bool HasReplicatedValue(UFlecsWorld* InWorld, const int32 InValue)
 	{
 		return FindReplicatedValueEntity(InWorld, InValue).IsValid();
+	}
+
+	static bool HasReplicatedDontFragmentValue(UFlecsWorld* InWorld,
+		const FFlecsNetworkId& InNetworkId, const int32 InValue)
+	{
+		const FFlecsEntityHandle Entity = FindNetworkEntity(InWorld, InNetworkId);
+		const FFlecsReplicationTestDontFragmentValue* Value =
+			Entity.TryGet<FFlecsReplicationTestDontFragmentValue>();
+		return Value && Value->Value == InValue;
+	}
+
+	static bool HasReplicatedDontFragmentTag(UFlecsWorld* InWorld, const FFlecsNetworkId& InNetworkId)
+	{
+		const FFlecsEntityHandle Entity = FindNetworkEntity(InWorld, InNetworkId);
+		return Entity.Has<FFlecsReplicationTestDontFragmentTag>();
 	}
 
 	static bool HasValueRelationshipPair(const FFlecsEntityHandle& InEntity, const FFlecsId InTargetId)
@@ -222,6 +239,21 @@ namespace UE::Flecs::Tests::MissingNetwork
 	static bool HasTableEntity(const UWorld* InWorld, const FFlecsNetworkId& InNetworkId)
 	{
 		return FindTable(InWorld, InNetworkId) != nullptr;
+	}
+
+	static UFlecsDontFragmentTable* FindDontFragmentTable(const UWorld* InWorld,
+		const FFlecsNetworkId& InNetworkId)
+	{
+		for (TObjectIterator<UFlecsDontFragmentTable> It; It; ++It)
+		{
+			UFlecsDontFragmentTable* Table = *It;
+			if (Table->GetWorld() == InWorld && Table->HasEntity(InNetworkId))
+			{
+				return Table;
+			}
+		}
+
+		return nullptr;
 	}
 } // namespace UE::Flecs::Tests::MissingNetwork
 
@@ -530,6 +562,149 @@ NETWORK_TEST_CLASS(FlecsReplicationAdditionalRealBridgeNetworkTests,
 					State.FlecsWorld, ExpectedTargetNetworkId);
 				return UE::Flecs::Tests::MissingNetwork::HasValueRelationshipPair(
 					Source, Target.GetFlecsId());
+			});
+	}
+
+	TEST_METHOD(DontFragment_ReplicatesInitialComponentValue)
+	{
+		Network
+			.ThenServer([this](FState& State)
+			{
+				UE::Flecs::Tests::MissingNetwork::EnsureNetworkTestWorld(State);
+				State.AuthorityEntity = State.FlecsWorld->CreateEntity()
+					.Set<FFlecsReplicationTestValue>({ 107 })
+					.Add<FFlecsReplicatedEntityComponent>();
+				ExpectedNetworkId = UE::Flecs::Tests::MissingNetwork::GetNetworkId(State.AuthorityEntity);
+				State.AuthorityEntity.Set<FFlecsReplicationTestDontFragmentValue>({ 211 });
+			})
+			.ThenClients([](FState& State)
+			{
+				UE::Flecs::Tests::MissingNetwork::EnsureNetworkTestWorld(State);
+			})
+			.UntilClient(TEXT("DontFragment table applies the initial component value"), 0,
+				[this](FState& State)
+			{
+				return UE::Flecs::Tests::MissingNetwork::HasReplicatedValue(State.FlecsWorld, 107)
+					&& UE::Flecs::Tests::MissingNetwork::FindDontFragmentTable(
+						State.World, ExpectedNetworkId) != nullptr
+					&& UE::Flecs::Tests::MissingNetwork::HasReplicatedDontFragmentValue(
+						State.FlecsWorld, ExpectedNetworkId, 211);
+			});
+	}
+
+	TEST_METHOD(DontFragment_ReplicatesRuntimeComponentValueChange)
+	{
+		Network
+			.ThenServer([this](FState& State)
+			{
+				UE::Flecs::Tests::MissingNetwork::EnsureNetworkTestWorld(State);
+				State.AuthorityEntity = State.FlecsWorld->CreateEntity()
+					.Set<FFlecsReplicationTestValue>({ 109 })
+					.Add<FFlecsReplicatedEntityComponent>();
+				ExpectedNetworkId = UE::Flecs::Tests::MissingNetwork::GetNetworkId(State.AuthorityEntity);
+				State.AuthorityEntity.Set<FFlecsReplicationTestDontFragmentValue>({ 223 });
+			})
+			.ThenClients([](FState& State)
+			{
+				UE::Flecs::Tests::MissingNetwork::EnsureNetworkTestWorld(State);
+			})
+			.UntilClient(TEXT("DontFragment table applies the initial component value"), 0,
+				[this](FState& State)
+			{
+				return UE::Flecs::Tests::MissingNetwork::HasReplicatedDontFragmentValue(
+					State.FlecsWorld, ExpectedNetworkId, 223);
+			})
+			.ThenServer([](FState& State)
+			{
+				State.AuthorityEntity.Set<FFlecsReplicationTestDontFragmentValue>({ 227 });
+			})
+			.UntilClient(TEXT("DontFragment table applies a runtime component value change"), 0,
+				[this](FState& State)
+			{
+				return UE::Flecs::Tests::MissingNetwork::HasReplicatedDontFragmentValue(
+					State.FlecsWorld, ExpectedNetworkId, 227);
+			});
+	}
+
+	TEST_METHOD(DontFragment_RemovesComponentWithoutRemovingEntity)
+	{
+		Network
+			.ThenServer([this](FState& State)
+			{
+				UE::Flecs::Tests::MissingNetwork::EnsureNetworkTestWorld(State);
+				State.AuthorityEntity = State.FlecsWorld->CreateEntity()
+					.Set<FFlecsReplicationTestValue>({ 113 })
+					.Add<FFlecsReplicatedEntityComponent>();
+				ExpectedNetworkId = UE::Flecs::Tests::MissingNetwork::GetNetworkId(State.AuthorityEntity);
+				State.AuthorityEntity.Set<FFlecsReplicationTestDontFragmentValue>({ 229 });
+			})
+			.ThenClients([](FState& State)
+			{
+				UE::Flecs::Tests::MissingNetwork::EnsureNetworkTestWorld(State);
+			})
+			.UntilClient(TEXT("DontFragment component is present before removal"), 0,
+				[this](FState& State)
+			{
+				return UE::Flecs::Tests::MissingNetwork::HasReplicatedDontFragmentValue(
+					State.FlecsWorld, ExpectedNetworkId, 229);
+			})
+			.ThenServer([](FState& State)
+			{
+				State.AuthorityEntity.Remove<FFlecsReplicationTestDontFragmentValue>();
+			})
+			.UntilClient(TEXT("DontFragment removal preserves the replicated entity"), 0,
+				[this](FState& State)
+			{
+				const FFlecsEntityHandle Entity = UE::Flecs::Tests::MissingNetwork::FindNetworkEntity(
+					State.FlecsWorld, ExpectedNetworkId);
+				return Entity.IsValid()
+					&& UE::Flecs::Tests::MissingNetwork::HasReplicatedValue(State.FlecsWorld, 113)
+					&& !Entity.Has<FFlecsReplicationTestDontFragmentValue>()
+					&& UE::Flecs::Tests::MissingNetwork::FindDontFragmentTable(
+						State.World, ExpectedNetworkId) == nullptr;
+			});
+	}
+
+	TEST_METHOD(DontFragment_ReplicatesTagComponentAndRemoval)
+	{
+		Network
+			.ThenServer([this](FState& State)
+			{
+				UE::Flecs::Tests::MissingNetwork::EnsureNetworkTestWorld(State);
+				State.AuthorityEntity = State.FlecsWorld->CreateEntity()
+					.Set<FFlecsReplicationTestValue>({ 127 })
+					.Add<FFlecsReplicatedEntityComponent>();
+				ExpectedNetworkId = UE::Flecs::Tests::MissingNetwork::GetNetworkId(State.AuthorityEntity);
+				State.AuthorityEntity.Add<FFlecsReplicationTestDontFragmentTag>();
+			})
+			.ThenClients([](FState& State)
+			{
+				UE::Flecs::Tests::MissingNetwork::EnsureNetworkTestWorld(State);
+			})
+			.UntilClient(TEXT("DontFragment table applies the tag component"), 0,
+				[this](FState& State)
+			{
+				return UE::Flecs::Tests::MissingNetwork::HasReplicatedValue(State.FlecsWorld, 127)
+					&& UE::Flecs::Tests::MissingNetwork::FindDontFragmentTable(
+						State.World, ExpectedNetworkId) != nullptr
+					&& UE::Flecs::Tests::MissingNetwork::HasReplicatedDontFragmentTag(
+						State.FlecsWorld, ExpectedNetworkId);
+			})
+			.ThenServer([](FState& State)
+			{
+				State.AuthorityEntity.Remove<FFlecsReplicationTestDontFragmentTag>();
+			})
+			.UntilClient(TEXT("DontFragment tag removal preserves the replicated entity"), 0,
+				[this](FState& State)
+			{
+				const FFlecsEntityHandle Entity = UE::Flecs::Tests::MissingNetwork::FindNetworkEntity(
+					State.FlecsWorld, ExpectedNetworkId);
+				return Entity.IsValid()
+					&& UE::Flecs::Tests::MissingNetwork::HasReplicatedValue(State.FlecsWorld, 127)
+					&& !UE::Flecs::Tests::MissingNetwork::HasReplicatedDontFragmentTag(
+						State.FlecsWorld, ExpectedNetworkId)
+					&& UE::Flecs::Tests::MissingNetwork::FindDontFragmentTable(
+						State.World, ExpectedNetworkId) == nullptr;
 			});
 	}
 

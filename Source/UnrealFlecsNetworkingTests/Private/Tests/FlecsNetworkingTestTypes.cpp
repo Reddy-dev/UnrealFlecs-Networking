@@ -6,6 +6,7 @@
 
 REGISTER_FLECS_COMPONENT(FFlecsReplicationTestValue);
 REGISTER_FLECS_COMPONENT(FFlecsReplicationTestDontFragmentValue);
+REGISTER_FLECS_COMPONENT(FFlecsReplicationTestDontFragmentTag);
 REGISTER_FLECS_COMPONENT(FFlecsReplicationTestNativeValue);
 REGISTER_FLECS_COMPONENT(FFlecsReplicationTestTag);
 REGISTER_FLECS_COMPONENT(FFlecsReplicationTestRequiredTag);

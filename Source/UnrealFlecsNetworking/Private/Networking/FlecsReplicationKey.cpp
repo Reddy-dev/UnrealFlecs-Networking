@@ -180,7 +180,7 @@ FFlecsId FFlecsReplicationKey::ResolveToId(const TSolidNotNull<const UFlecsWorld
 }
 
 TValueOrError<FFlecsReplicationKey, FString> FFlecsReplicationKey::BuildKey(
-	const TSolidNotNull<const UFlecsWorldInterfaceObject*> InWorld, const FFlecsId InId)
+	const TSolidNotNull<const UFlecsWorldInterfaceObject*> InWorld, const FFlecsId InId, const bool bAllowTag)
 {
 	solid_check(InId.IsValid());
 	
@@ -191,7 +191,7 @@ TValueOrError<FFlecsReplicationKey, FString> FFlecsReplicationKey::BuildKey(
 		
 		const EFlecsReplicationKeyStorageKind StorageKind = GetStorageKindForPair(InWorld, FirstId, SecondId);
 		
-		if UNLIKELY_IF(StorageKind == EFlecsReplicationKeyStorageKind::None)
+		if (StorageKind == EFlecsReplicationKeyStorageKind::None && !bAllowTag)
 		{
 			return MakeError("Neither component in the pair is eligible for storage");
 		}
@@ -204,7 +204,8 @@ TValueOrError<FFlecsReplicationKey, FString> FFlecsReplicationKey::BuildKey(
 			return MakeError(FString::Printf(TEXT("Failed to build first individual key: %s"), *FirstKeyResult.GetError()));
 		}
 		
-		const TValueOrError<FFlecsReplicationIndividualKey, FString> SecondKeyResult = FFlecsReplicationIndividualKey::BuildIndividualKey(InWorld, SecondId);
+		const TValueOrError<FFlecsReplicationIndividualKey, FString> SecondKeyResult 
+			= FFlecsReplicationIndividualKey::BuildIndividualKey(InWorld, SecondId);
 		if UNLIKELY_IF(SecondKeyResult.HasError())
 		{
 			return MakeError(FString::Printf(TEXT("Failed to build second individual key: %s"), *SecondKeyResult.GetError()));

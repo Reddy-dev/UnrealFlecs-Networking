@@ -10,6 +10,7 @@
 #include "Networking/FlecsNetworkId.h"
 #include "Networking/FlecsReplicationShardSelection.h"
 #include "Networking/FlecsReplicationUpdateQueue.h"
+#include "Networking/Layout/FlecsDontFragmentReplicationSnapshot.h"
 #include "Networking/Layout/FlecsReplicationLayoutRegistry.h"
 #include "Networking/Layout/FlecsReplicationSnapshot.h"
 
@@ -130,6 +131,9 @@ public:
 	
 	void ReceiveNetworkEntitySnapshot(const FFlecsNetworkId& InNetworkId, const FFlecsEntityReplicationSnapshot& InSnapshot);
 	void RemoveReceivedNetworkEntity(const FFlecsNetworkId& InNetworkId, uint32 InStateRevision);
+	
+	void ReceiveNetworkDontFragmentSnapshot(const FFlecsNetworkId& InNetworkId, const FFlecsDontFragmentReplicationSnapshot& InSnapshot);
+	void RemoveReceivedNetworkDontFragmentEntity(const FFlecsNetworkId& InNetworkId, uint32 InStateRevision);
 
 	UFUNCTION(BlueprintCallable, Category = "Flecs|Networking")
 	FFlecsEntityHandle RegisterReplicationProfileAsset(const UFlecsReplicationProfileDataAsset* InAsset);

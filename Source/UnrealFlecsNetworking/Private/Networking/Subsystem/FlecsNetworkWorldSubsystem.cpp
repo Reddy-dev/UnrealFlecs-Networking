@@ -393,8 +393,23 @@ void UFlecsNetworkWorldSubsystem::RemoveReceivedNetworkEntity(const FFlecsNetwor
 	QueueReplicationRemoval(InNetworkId, InStateRevision);
 }
 
+void UFlecsNetworkWorldSubsystem::ReceiveNetworkDontFragmentSnapshot(const FFlecsNetworkId& InNetworkId,
+	const FFlecsDontFragmentReplicationSnapshot& InSnapshot)
+{
+}
+
+void UFlecsNetworkWorldSubsystem::RemoveReceivedNetworkDontFragmentEntity(const FFlecsNetworkId& InNetworkId,
+	uint32 InStateRevision)
+{
+	const FFlecsEntityHandle* EntityHandle = NetworkIdToEntityMap.Find(InNetworkId);
+	if (EntityHandle && EntityHandle->IsValid())
+	{
+		StopReplicatingEntity(*EntityHandle);
+	}
+}
+
 void UFlecsNetworkWorldSubsystem::QueueReplicationSnapshot(const FFlecsNetworkId& InNetworkId,
-	const FFlecsEntityReplicationSnapshot& InSnapshot)
+                                                           const FFlecsEntityReplicationSnapshot& InSnapshot)
 {
 	ReplicationUpdateQueue.EnqueueSnapshot(InNetworkId, InSnapshot);
 }
@@ -533,7 +548,7 @@ void UFlecsNetworkWorldSubsystem::RegisterDontFragmentIndividualComponentDirtyOb
 		}
 		
 		auto ReplicationKeyOutcome 
-			= FFlecsReplicationKey::BuildKey(GetFlecsWorldChecked(), InId);
+			= FFlecsReplicationKey::BuildKey(GetFlecsWorldChecked(), InId, true);
 		
 		if UNLIKELY_IF(ReplicationKeyOutcome.HasError())
 		{
@@ -557,7 +572,7 @@ void UFlecsNetworkWorldSubsystem::RegisterDontFragmentIndividualComponentDirtyOb
 				const FFlecsEntityHandle EntityHandle = Iter.entity(Index);
 				solid_check(EntityHandle.IsValid());
 				
-				const FFlecsNetworkId NetworkId = Iter.field_at<const FFlecsNetworkId>(Index, 2);
+				const FFlecsNetworkId NetworkId = Iter.field_at<const FFlecsNetworkId>(2, Index);
 				
 				if (Iter.event() == flecs::OnRemove)
 				{

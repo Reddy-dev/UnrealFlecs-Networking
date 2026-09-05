@@ -117,5 +117,10 @@ private:
 	
 	UPROPERTY()
 	FFlecsEntityView ReplicationProfile;
+	
+protected:
+	
+	UPROPERTY()
+	uint8 bShouldUseReplicationProfile : 1 = true;
 
 }; // class UFlecsNetShardBase

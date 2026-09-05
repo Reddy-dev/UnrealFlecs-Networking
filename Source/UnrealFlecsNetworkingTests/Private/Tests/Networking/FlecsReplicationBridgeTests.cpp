@@ -41,7 +41,7 @@ FLECS_REPLICATION_TEST_CLASS_WITH_FLAGS_AND_TAGS(FlecsReplicationBridgeTests,
 		const FFlecsId ComponentId =
 			World()->RegisterComponentType<FFlecsReplicationTestDontFragmentValue>().GetFlecsId();
 		const TValueOrError<FFlecsReplicationKey, FString> ReplicationKeyResult =
-			FFlecsReplicationKey::BuildKey(World(), ComponentId);
+			FFlecsReplicationKey::BuildKey(World(), ComponentId, true);
 		ASSERT_THAT(IsFalse(ReplicationKeyResult.HasError()));
 		if (ReplicationKeyResult.HasError())
 		{

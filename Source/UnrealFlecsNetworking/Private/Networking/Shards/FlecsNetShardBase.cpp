@@ -134,10 +134,15 @@ void UFlecsNetShardBase::ConfigureObjectSettings(OUT UE::Net::FRootObjectSetting
 
 void UFlecsNetShardBase::ApplyReplicationProfile() const
 {
+	if (!bShouldUseReplicationProfile)
+	{
+		return;
+	}
+
 	if (!GetReplicationProfile().IsValid())
 	{
 		UE_LOGFMT(LogFlecsWorld, Warning,
-			"Flecs shard '%s' has an invalid replication profile, skipping replication profile application",
+			"Flecs shard '{0}' has an invalid replication profile, skipping replication profile application",
 			*GetName());
 		return;
 	}

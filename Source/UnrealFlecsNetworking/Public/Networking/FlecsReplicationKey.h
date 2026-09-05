@@ -143,7 +143,7 @@ struct UNREALFLECSNETWORKING_API FFlecsReplicationKey
 	static NO_DISCARD FFlecsId ResolveToId(const TSolidNotNull<const UFlecsWorldInterfaceObject*> InWorld, const FFlecsReplicationKey& InKey);
 	
 	static NO_DISCARD TValueOrError<FFlecsReplicationKey, FString> 
-		BuildKey(const TSolidNotNull<const UFlecsWorldInterfaceObject*> InWorld, const FFlecsId InId);
+		BuildKey(const TSolidNotNull<const UFlecsWorldInterfaceObject*> InWorld, const FFlecsId InId, const bool bAllowTag = false);
 
 	UPROPERTY()
 	EFlecsReplicationKeyKind Kind = EFlecsReplicationKeyKind::Component;

@@ -42,6 +42,21 @@ struct TFlecsComponentTraits<FFlecsReplicationTestDontFragmentValue>
 	static constexpr bool Replicate = true;
 }; // struct TFlecsComponentTraits<FFlecsReplicationTestDontFragmentValue>
 
+USTRUCT()
+struct FFlecsReplicationTestDontFragmentTag
+{
+	GENERATED_BODY()
+};
+
+template <>
+struct TFlecsComponentTraits<FFlecsReplicationTestDontFragmentTag>
+	: TFlecsComponentTraitsBase<FFlecsReplicationTestDontFragmentTag>
+{
+	static constexpr bool AutoRegister = false;
+	static constexpr bool DontFragment = true;
+	static constexpr bool Replicate = true;
+}; // struct TFlecsComponentTraits<FFlecsReplicationTestDontFragmentTag>
+
 struct FFlecsReplicationTestNativeValue
 {
 	int32 Value = 0;

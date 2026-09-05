@@ -3,7 +3,9 @@
 #include "Networking/Shards/FlecsDontFragmentTable.h"
 
 #include "Net/UnrealNetwork.h"
+
 #include "Networking/Shards/FlecsNetDontFragmentTableNetFactory.h"
+#include "Networking/Subsystem/FlecsNetworkWorldSubsystem.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FlecsDontFragmentTable)
 
@@ -20,7 +22,7 @@ void UFlecsDontFragmentTable::GetLifetimeReplicatedProps(TArray<class FLifetimeP
 
 void UFlecsDontFragmentTable::ConfigureObjectSettings(UE::Net::FRootObjectSettings& OutSettings) const
 {
-	Super::ConfigureObjectSettings(OutSettings);
+	//Super::ConfigureObjectSettings(OutSettings);
 	
 	OutSettings.FactoryName = UFlecsNetDontFragmentTableNetFactory::GetFactoryName();
 	OutSettings.bIsAlwaysRelevant = true; // Tables must always be relevant
@@ -29,6 +31,8 @@ void UFlecsDontFragmentTable::ConfigureObjectSettings(UE::Net::FRootObjectSettin
 
 void UFlecsDontFragmentTable::InitializeDontFragmentTable(const FFlecsReplicationKey& InReplicationKey)
 {
+	bShouldUseReplicationProfile = false;
+	
 	InitializeShard(FFlecsEntityView::GetNullHandle());
 	
 	DontFragmentKey = InReplicationKey;
@@ -42,13 +46,42 @@ void UFlecsDontFragmentTable::HandleReplicationDetached()
 
 void UFlecsDontFragmentTable::HandleEntityRemoved(const FFlecsNetworkId InNetworkId, uint32 InStateRevision)
 {
+	if (!InNetworkId.IsValid())
+	{
+		return;
+	}
 	
+	ResolveOwningNetworkWorldSubsystem();
+	UFlecsNetworkWorldSubsystem* NetworkSubsystem = GetOwningNetworkWorldSubsystem();
+	
+	/*if (!NetworkSubsystem)
+	{
+		PendingReplicationUpdateQueue.EnqueueRemoval(InNetworkId, InStateRevision);
+		return;
+	}*/
+
+	NetworkSubsystem->RemoveReceivedNetworkDontFragmentEntity(InNetworkId, InStateRevision);
 }
 
 void UFlecsDontFragmentTable::HandleEntityUpdated(const FFlecsNetworkId InNetworkId,
 	const FFlecsDontFragmentReplicationSnapshot& InSnapshot)
 {
+	if (!InNetworkId.IsValid())
+	{
+		return;
+	}
+
+	ResolveOwningNetworkWorldSubsystem();
 	
+	/*// this may be Null
+	UFlecsNetworkWorldSubsystem* NetworkSubsystem = GetOwningNetworkWorldSubsystem();
+	if UNLIKELY_IF(!NetworkSubsystem)
+	{
+		PendingReplicationUpdateQueue.EnqueueSnapshot(InNetworkId, InSnapshot);
+		return;
+	}*/
+
+	GetOwningNetworkWorldSubsystem()->ReceiveNetworkDontFragmentSnapshot(InNetworkId, InSnapshot);
 }
 
 void UFlecsDontFragmentTable::PublishDontFragmentNetEntity(const FFlecsNetworkId& InNetworkId,
