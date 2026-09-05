@@ -50,6 +50,8 @@ void UFlecsNetEntityTable::PublishNetEntity(const FFlecsNetworkId& InNetworkId,
 		{
 			return Item.NetworkId == InNetworkId;
 		});
+	
+	MARK_PROPERTY_DIRTY_FROM_NAME(UFlecsNetEntityTable, EntityTable, this);
 
 	if (ExistingItem)
 	{
@@ -79,6 +81,8 @@ void UFlecsNetEntityTable::RemoveNetEntity(const FFlecsNetworkId& InNetworkId, c
 
 	EntityTable.Items.RemoveAt(RemovedIndex);
 	EntityTable.MarkArrayDirty();
+	
+	MARK_PROPERTY_DIRTY_FROM_NAME(UFlecsNetEntityTable, EntityTable, this);
 }
 
 bool UFlecsNetEntityTable::IsEmpty() const

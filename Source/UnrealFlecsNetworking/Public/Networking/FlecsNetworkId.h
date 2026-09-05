@@ -32,6 +32,16 @@ struct UNREALFLECSNETWORKING_API FFlecsNetworkId
 	static constexpr uint64 GenerationValueMask = (1ull << GenerationBitCount) - 1ull;
 	static constexpr uint64 GenerationMask = GenerationValueMask << SlotBitCount;
 	
+	static constexpr NO_DISCARD FFlecsNetworkId Invalid()
+	{
+		return FFlecsNetworkId(InvalidValue);
+	}
+	
+	static constexpr NO_DISCARD FFlecsNetworkId Null()
+	{
+		return FFlecsNetworkId(InvalidValue);
+	}
+	
 public:
 
 	FFlecsNetworkId() = default;

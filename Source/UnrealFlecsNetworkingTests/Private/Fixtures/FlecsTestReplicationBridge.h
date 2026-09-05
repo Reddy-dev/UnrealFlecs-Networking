@@ -4,8 +4,23 @@
 
 
 #include "Networking/Bridge/FlecsReplicationBridgeBase.h"
+#include "Networking/FlecsReplicationKey.h"
+#include "Networking/Layout/FlecsDontFragmentReplicationSnapshot.h"
 
 #include "FlecsTestReplicationBridge.generated.h"
+
+struct FFlecsTestDontFragmentComponentPublication
+{
+	FFlecsNetworkId NetworkId;
+	FFlecsReplicationKey ReplicationKey;
+	FFlecsDontFragmentReplicationSnapshot Snapshot;
+}; // struct FFlecsTestDontFragmentComponentPublication
+
+struct FFlecsTestDontFragmentComponentRemoval
+{
+	FFlecsNetworkId NetworkId;
+	FFlecsReplicationKey ReplicationKey;
+}; // struct FFlecsTestDontFragmentComponentRemoval
 
 UCLASS()
 class UNREALFLECSNETWORKINGTESTS_API UFlecsTestReplicationBridge : public UFlecsReplicationBridgeBase
@@ -21,6 +36,11 @@ public:
 		const FFlecsEntityHandle& InEntityHandle,
 		const FFlecsNetworkId InNetworkId,
 		const FFlecsEntityReplicationSnapshot& InSnapshot) override;
+	virtual void PublishDontFragmentComponent(const FFlecsNetworkId InNetworkId,
+		const FFlecsReplicationKey& InReplicationKey,
+		const FFlecsDontFragmentReplicationSnapshot& InSnapshot) override;
+	virtual void RemoveDontFragmentComponent(const FFlecsNetworkId InNetworkId,
+		const FFlecsReplicationKey& InReplicationKey) override;
 	virtual NO_DISCARD UFlecsNetShardBase* ResolveShard(
 		const FFlecsEntityHandle&,
 		const FFlecsNetworkId,
@@ -47,6 +67,16 @@ public:
 		return PublishedSnapshots;
 	}
 
+	NO_DISCARD const TArray<FFlecsTestDontFragmentComponentPublication>& GetPublishedDontFragmentComponents() const
+	{
+		return PublishedDontFragmentComponents;
+	}
+
+	NO_DISCARD const TArray<FFlecsTestDontFragmentComponentRemoval>& GetRemovedDontFragmentComponents() const
+	{
+		return RemovedDontFragmentComponents;
+	}
+
 private:
 	UPROPERTY(Transient)
 	TObjectPtr<UFlecsTestReplicationBridge> Peer = nullptr;
@@ -55,6 +85,8 @@ private:
 	TArray<FFlecsReplicationLayoutDefinition> PublishedLayouts;
 
 	TArray<TPair<FFlecsNetworkId, FFlecsEntityReplicationSnapshot>> PublishedSnapshots;
+	TArray<FFlecsTestDontFragmentComponentPublication> PublishedDontFragmentComponents;
+	TArray<FFlecsTestDontFragmentComponentRemoval> RemovedDontFragmentComponents;
 
 	bool bInitialized = false;
 }; // class UFlecsTestReplicationBridge

@@ -134,6 +134,14 @@ void UFlecsNetShardBase::ConfigureObjectSettings(OUT UE::Net::FRootObjectSetting
 
 void UFlecsNetShardBase::ApplyReplicationProfile() const
 {
+	if (!GetReplicationProfile().IsValid())
+	{
+		UE_LOGFMT(LogFlecsWorld, Warning,
+			"Flecs shard '%s' has an invalid replication profile, skipping replication profile application",
+			*GetName());
+		return;
+	}
+	
 	const TSolidNotNull<const UWorld*> World = GetWorld();
 	const TSolidNotNull<const UNetDriver*> NetDriver = World->GetNetDriver();
 	const TSolidNotNull<UReplicationSystem*> ReplicationSystem = NetDriver->GetReplicationSystem();

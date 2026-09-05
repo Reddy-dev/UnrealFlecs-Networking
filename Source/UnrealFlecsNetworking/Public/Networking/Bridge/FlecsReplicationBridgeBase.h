@@ -10,6 +10,8 @@
 
 #include "FlecsReplicationBridgeBase.generated.h"
 
+struct FFlecsDontFragmentReplicationSnapshot;
+
 class UFlecsNetworkWorldSubsystem;
 class UFlecsNetShardBase;
 
@@ -54,9 +56,12 @@ public:
 	virtual void ReceiveNetEntity(const FFlecsNetworkId& InNetworkId, const FFlecsEntityReplicationSnapshot& InSnapshot);
 	virtual void StopReplicatingEntity(const FFlecsEntityHandle& InEntityHandle) {}
 	
-	virtual void PublishDontFragmentComponent(const FFlecsNetworkId InNetworkId, 
-		const TSolidNotNull<const uint8*> InComponentData, const FFlecsReplicationKey& InReplicationKey)
+	virtual void PublishDontFragmentComponent(const FFlecsNetworkId InNetworkId, const FFlecsReplicationKey& InReplicationKey,
+		const FFlecsDontFragmentReplicationSnapshot& InSnapshot)
 		PURE_VIRTUAL(UFlecsReplicationBridgeBase::PublishDontFragmentComponent, );
+	
+	virtual void RemoveDontFragmentComponent(const FFlecsNetworkId InNetworkId, const FFlecsReplicationKey& InReplicationKey)
+		PURE_VIRTUAL(UFlecsReplicationBridgeBase::RemoveDontFragmentComponent, );
 	
 	virtual void HandleProtocolError(const FString& InErrorMessage);
 

@@ -4,7 +4,6 @@
 
 
 #include "SolidMacros/Macros.h"
-#include "Concepts/SolidConcepts.h"
 
 #include "Entities/FlecsComponentHandle.h"
 #include "Properties/FlecsReplicationComponentDefinition.h"

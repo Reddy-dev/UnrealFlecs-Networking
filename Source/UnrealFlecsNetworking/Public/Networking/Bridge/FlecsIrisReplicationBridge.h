@@ -14,6 +14,7 @@
 
 #include "FlecsIrisReplicationBridge.generated.h"
 
+struct FFlecsDontFragmentReplicationSnapshot;
 class UFlecsDontFragmentTable;
 /**
  * Always-relevant Iris root object coordinating Flecs replication.
@@ -103,8 +104,8 @@ public:
 	
 	virtual void PublishNetEntity(const FFlecsEntityHandle& EntityHandle, const FFlecsNetworkId InNetworkId,
 		const FFlecsEntityReplicationSnapshot& InSnapshot) override;
-	virtual void PublishDontFragmentComponent(const FFlecsNetworkId InNetworkId,
-		const TSolidNotNull<const uint8*> InComponentData, const FFlecsReplicationKey& InReplicationKey) override;
+	virtual void PublishDontFragmentComponent(const FFlecsNetworkId InNetworkId, const FFlecsReplicationKey& InReplicationKey,
+		const FFlecsDontFragmentReplicationSnapshot& InSnapshot) override;
 	
 	virtual void StopReplicatingEntity(const FFlecsEntityHandle& InEntityHandle) override;
 	
@@ -140,9 +141,14 @@ protected:
 
 	UPROPERTY()
 	TMap<FFlecsEntityView, FFlecsReplicationShardPlacement> ShardMap;
+	
+	UPROPERTY()
+	TArray<TObjectPtr<UFlecsNetShardBase>> ShardPool;
 
 	TMap<FFlecsReplicationShardPoolKey, TArray<TObjectPtr<UFlecsNetShardBase>>> ShardPools;
-	TMap<FFlecsReplicationKey, 
+	
+	UPROPERTY()
+	TMap<FFlecsReplicationKey, TObjectPtr<UFlecsDontFragmentTable>> DontFragmentTables;
 
 	UE::Net::FNetRootObjectAdapter RootObjectAdapter;
 	

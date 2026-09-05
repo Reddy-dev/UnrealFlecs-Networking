@@ -40,6 +40,26 @@ void UFlecsTestReplicationBridge::PublishNetEntity(
 	}
 }
 
+void UFlecsTestReplicationBridge::PublishDontFragmentComponent(const FFlecsNetworkId InNetworkId,
+	const FFlecsReplicationKey& InReplicationKey,
+	const FFlecsDontFragmentReplicationSnapshot& InSnapshot)
+{
+	FFlecsTestDontFragmentComponentPublication& Publication =
+		PublishedDontFragmentComponents.Emplace_GetRef();
+	Publication.NetworkId = InNetworkId;
+	Publication.ReplicationKey = InReplicationKey;
+	Publication.Snapshot = InSnapshot;
+}
+
+void UFlecsTestReplicationBridge::RemoveDontFragmentComponent(const FFlecsNetworkId InNetworkId,
+	const FFlecsReplicationKey& InReplicationKey)
+{
+	FFlecsTestDontFragmentComponentRemoval& Removal =
+		RemovedDontFragmentComponents.Emplace_GetRef();
+	Removal.NetworkId = InNetworkId;
+	Removal.ReplicationKey = InReplicationKey;
+}
+
 void UFlecsTestReplicationBridge::SetPeer(UFlecsTestReplicationBridge* InPeer)
 {
 	Peer = InPeer;
@@ -49,4 +69,6 @@ void UFlecsTestReplicationBridge::ResetCapturedRecords()
 {
 	PublishedLayouts.Reset();
 	PublishedSnapshots.Reset();
+	PublishedDontFragmentComponents.Reset();
+	RemovedDontFragmentComponents.Reset();
 }

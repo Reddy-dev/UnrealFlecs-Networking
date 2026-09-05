@@ -17,6 +17,7 @@
 #include "Networking/Profiles/FlecsReplicationProfile.h"
 #include "Networking/Profiles/FlecsReplicationProfileDataAsset.h"
 #include "Networking/FlecsReplicationShardSelection.h"
+#include "Networking/Layout/FlecsDontFragmentReplicationSnapshot.h"
 #include "Networking/Profiles/FlecsProfileRelationshipTypes.h"
 #include "Networking/Profiles/FlecsReplicationProfileParamsBase.h"
 #include "Networking/Profiles/FlecsReplicationProfileParamTypes.h"
@@ -141,11 +142,6 @@ void UFlecsNetworkWorldSubsystem::RegisterIndividualComponentDirtyObserver(const
 	{
 		UE_LOG(LogFlecsWorld, Error, 
 			TEXT("Component replication descriptor verification failed: %s"), *VerifyOutcome.GetError());
-		return;
-	}
-	
-	if (InDescriptor.IsTag())
-	{
 		return;
 	}
 	
@@ -515,7 +511,9 @@ void UFlecsNetworkWorldSubsystem::RegisterFragmentingIndividualComponentDirtyObs
 
 void UFlecsNetworkWorldSubsystem::RegisterDontFragmentIndividualComponentDirtyObservers(const FFlecsComponentReplicationDescriptor& InDescriptor)
 {
-	auto CreateObserver = [this, InDescriptor](const FFlecsId InId) -> FFlecsObserverHandle
+	const bool bIsTag = InDescriptor.IsTag();
+	
+	auto CreateObserver = [this, InDescriptor, bIsTag](const FFlecsId InId) -> FFlecsObserverHandle
 	{
 		const bool bIsPair = InId.IsPair();
 
@@ -554,18 +552,53 @@ void UFlecsNetworkWorldSubsystem::RegisterDontFragmentIndividualComponentDirtyOb
 			.Event(flecs::OnSet)
 			.Event(flecs::OnAdd)
 			.Event(flecs::OnRemove)
-			.each([this, ReplicationKey](flecs::iter& Iter, size_t Index)
+			.each([this, ReplicationKey, bIsTag, InId](flecs::iter& Iter, size_t Index)
 			{
 				const FFlecsEntityHandle EntityHandle = Iter.entity(Index);
 				solid_check(EntityHandle.IsValid());
 				
 				const FFlecsNetworkId NetworkId = Iter.field_at<const FFlecsNetworkId>(Index, 2);
 				
-				const void* ComponentPtr = Iter.field_at(Index, 0);
-				const TSolidNotNull<const uint8*> ComponentDataPtr = reinterpret_cast<const uint8*>(ComponentPtr);
+				if (Iter.event() == flecs::OnRemove)
+				{
+					GetReplicationBridge()->RemoveDontFragmentComponent(NetworkId, ReplicationKey);
+					return;
+				}
+				
+				// @TODO: snapshot tracking
+				FFlecsDontFragmentReplicationSnapshot Snapshot;
+				Snapshot.StateRevision = 0;
+				
+				if (bIsTag)
+				{
+					Snapshot.SnapshotData = TArray<uint8>();
+				}
+				else
+				{
+					const void* ComponentPtr = Iter.field_at(Index, 0);
+					
+					const TSolidNotNull<const FFlecsComponentReplicationDescriptor*> DescriptorPtr 
+						= FFlecsComponentReplicationRegistry::Get(GetFlecsWorldChecked()).Find(InId);
+				
+					TArray<uint8> SnapshotData;
+					FMemoryWriter MemoryWriter(SnapshotData, true, true);
+					
+					const bool bSerializeSuccess = DescriptorPtr->GetSerializeFunction()(MemoryWriter, const_cast<void*>(ComponentPtr));
+					const bool bWriterError = MemoryWriter.IsError();
+					
+					if UNLIKELY_IF(!bSerializeSuccess || bWriterError)
+					{
+						UE_LOGFMT(LogFlecsCore, Error,
+							"Failed to serialize component '{0}' (Flecs ID: {1}) for network ID '{2}'",
+							*DescriptorPtr->StableName, *InId.ToString(), *NetworkId.ToString());
+						return;
+					}
+
+					Snapshot.SnapshotData = MoveTemp(SnapshotData);
+				}
 				
 				GetReplicationBridge()->PublishDontFragmentComponent(NetworkId, 
-					ComponentDataPtr, ReplicationKey);
+					ReplicationKey, Snapshot);
 			});
 		
 		// your observer builder failed

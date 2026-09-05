@@ -36,6 +36,83 @@ FLECS_REPLICATION_TEST_CLASS_WITH_FLAGS_AND_TAGS(FlecsReplicationBridgeTests,
 		ASSERT_THAT(IsTrue(NetworkSubsystem()->GetReplicationBridge() == TestBridge()));
 	}
 
+	TEST_METHOD(DontFragmentComponent_CapturesPublicationRemovalAndResetThroughFakeBridge)
+	{
+		const FFlecsId ComponentId =
+			World()->RegisterComponentType<FFlecsReplicationTestDontFragmentValue>().GetFlecsId();
+		const TValueOrError<FFlecsReplicationKey, FString> ReplicationKeyResult =
+			FFlecsReplicationKey::BuildKey(World(), ComponentId);
+		ASSERT_THAT(IsFalse(ReplicationKeyResult.HasError()));
+		if (ReplicationKeyResult.HasError())
+		{
+			return;
+		}
+
+		const FFlecsReplicationKey ReplicationKey = ReplicationKeyResult.GetValue();
+		const FFlecsNetworkId NetworkId(37, 1);
+		FFlecsDontFragmentReplicationSnapshot InitialSnapshot;
+		InitialSnapshot.SnapshotData = { 3, 7, 11 };
+		InitialSnapshot.StateRevision = 1;
+		const TArray<uint8> InitialSnapshotData = InitialSnapshot.SnapshotData;
+
+		TestBridge()->PublishDontFragmentComponent(NetworkId, ReplicationKey, InitialSnapshot);
+
+		const TArray<FFlecsTestDontFragmentComponentPublication>& Publications =
+			TestBridge()->GetPublishedDontFragmentComponents();
+		ASSERT_THAT(AreEqual(1, Publications.Num()));
+		if (Publications.Num() != 1)
+		{
+			return;
+		}
+
+		const FFlecsTestDontFragmentComponentPublication& InitialPublication = Publications[0];
+		ASSERT_THAT(IsTrue(InitialPublication.NetworkId == NetworkId));
+		ASSERT_THAT(IsTrue(
+			InitialPublication.ReplicationKey.Kind == EFlecsReplicationKeyKind::Component));
+		ASSERT_THAT(IsTrue(
+			InitialPublication.ReplicationKey.StorageKind == EFlecsReplicationKeyStorageKind::Primary));
+		const FFlecsReplicationKey InitialReplicationKey = InitialPublication.ReplicationKey;
+		ASSERT_THAT(IsTrue(InitialPublication.Snapshot.SnapshotData == InitialSnapshotData));
+		ASSERT_THAT(AreEqual(1u, InitialPublication.Snapshot.StateRevision));
+
+		InitialSnapshot.SnapshotData[0] = 99;
+		InitialSnapshot.StateRevision = 99;
+		ASSERT_THAT(IsTrue(InitialPublication.Snapshot.SnapshotData == InitialSnapshotData));
+		ASSERT_THAT(AreEqual(1u, InitialPublication.Snapshot.StateRevision));
+
+		FFlecsDontFragmentReplicationSnapshot UpdatedSnapshot;
+		UpdatedSnapshot.SnapshotData = { 13, 17 };
+		UpdatedSnapshot.StateRevision = 2;
+		TestBridge()->PublishDontFragmentComponent(NetworkId, ReplicationKey, UpdatedSnapshot);
+		ASSERT_THAT(AreEqual(2, Publications.Num()));
+		if (Publications.Num() != 2)
+		{
+			return;
+		}
+
+		const FFlecsTestDontFragmentComponentPublication& UpdatedPublication = Publications[1];
+		ASSERT_THAT(IsTrue(UpdatedPublication.NetworkId == NetworkId));
+		ASSERT_THAT(IsTrue(UpdatedPublication.ReplicationKey == InitialReplicationKey));
+		ASSERT_THAT(IsTrue(UpdatedPublication.Snapshot.SnapshotData == UpdatedSnapshot.SnapshotData));
+		ASSERT_THAT(AreEqual(2u, UpdatedPublication.Snapshot.StateRevision));
+
+		TestBridge()->RemoveDontFragmentComponent(NetworkId, ReplicationKey);
+		const TArray<FFlecsTestDontFragmentComponentRemoval>& Removals =
+			TestBridge()->GetRemovedDontFragmentComponents();
+		ASSERT_THAT(AreEqual(1, Removals.Num()));
+		if (Removals.Num() != 1)
+		{
+			return;
+		}
+
+		ASSERT_THAT(IsTrue(Removals[0].NetworkId == NetworkId));
+		ASSERT_THAT(IsTrue(Removals[0].ReplicationKey == ReplicationKey));
+
+		TestBridge()->ResetCapturedRecords();
+		ASSERT_THAT(AreEqual(0, Publications.Num()));
+		ASSERT_THAT(AreEqual(0, Removals.Num()));
+	}
+
 	TEST_METHOD(ReplicationQueue_CoalescesByLatestStateRevision)
 	{
 		FFlecsReplicationUpdateQueue Queue;

@@ -9,6 +9,7 @@
 
 #include "Networking/Bridge/FlecsIrisReplicationBridgeNetFactory.h"
 #include "Networking/Profiles/FlecsProfileRelationshipTypes.h"
+#include "Networking/Shards/FlecsDontFragmentTable.h"
 #include "Networking/Subsystem/FlecsNetworkWorldSubsystem.h"
 #include "Networking/Shards/FlecsNetEntityProxy.h"
 #include "Networking/Shards/FlecsNetShardBase.h"
@@ -112,19 +113,17 @@ void UFlecsIrisReplicationBridge::InitializeBridge()
 
 void UFlecsIrisReplicationBridge::DeinitializeBridge()
 {
-	for (TPair<FFlecsReplicationShardPoolKey, TArray<TObjectPtr<UFlecsNetShardBase>>>& Pair : ShardPools)
+	for (TObjectPtr<UFlecsNetShardBase>& Shard : ShardPool)
 	{
-		for (UFlecsNetShardBase* Shard : Pair.Value)
+		if LIKELY_IF(Shard)
 		{
-			if LIKELY_IF(Shard)
-			{
-				Shard->DeinitializeShard();
-				Shard->SetOwningNetworkWorldSubsystem(nullptr);
-			}
+			Shard->DeinitializeShard();
+			Shard->SetOwningNetworkWorldSubsystem(nullptr);
 		}
 	}
 	
 	ShardMap.Reset();
+	ShardPool.Reset();
 	ShardPools.Reset();
 
 	if (RootObjectAdapter.IsReplicating())
@@ -165,10 +164,15 @@ void UFlecsIrisReplicationBridge::PublishNetEntity(const FFlecsEntityHandle& Ent
 	Shard->PublishNetEntity(InNetworkId, InSnapshot);
 }
 
-void UFlecsIrisReplicationBridge::PublishDontFragmentComponent(const FFlecsNetworkId InNetworkId,
-	const TSolidNotNull<const uint8*> InComponentData, const FFlecsReplicationKey& InReplicationKey)
+void UFlecsIrisReplicationBridge::PublishDontFragmentComponent(const FFlecsNetworkId InNetworkId, const FFlecsReplicationKey& InReplicationKey,
+	const FFlecsDontFragmentReplicationSnapshot& InSnapshot)
 {
+	solid_checkf(InNetworkId.IsValid(), 
+		TEXT("Cannot publish a Flecs 'DontFragment' component without a valid network ID"));
 	
+	const TSolidNotNull<UFlecsDontFragmentTable*> DontFragmentTable = FindOrCreateDontFragmentTable(InReplicationKey);
+	
+	DontFragmentTable->PublishDontFragmentNetEntity(InNetworkId, InSnapshot);
 }
 
 void UFlecsIrisReplicationBridge::StopReplicatingEntity(const FFlecsEntityHandle& InEntityHandle)
@@ -180,10 +184,20 @@ void UFlecsIrisReplicationBridge::StopReplicatingEntity(const FFlecsEntityHandle
 
 	if (const FFlecsReplicationShardPlacement* Placement = ShardMap.Find(InEntityHandle))
 	{
+		const FFlecsNetworkId NetworkId = Placement->NetworkId;
+		
 		if (UFlecsNetShardBase* Shard = Placement->Shard)
 		{
 			Shard->RemoveNetEntity(Placement->NetworkId, false);
 			ReleaseShardIfEmpty(Shard, Placement->Profile, Placement->Selection);
+		}
+		
+		for (TTuple<FFlecsReplicationKey, TObjectPtr<UFlecsDontFragmentTable>>& Pair : DontFragmentTables)
+		{
+			if (UFlecsDontFragmentTable* DontFragmentTable = Pair.Value)
+			{
+				DontFragmentTable->RemoveNetEntity(NetworkId, false);
+			}
 		}
 
 		ShardMap.Remove(InEntityHandle);
@@ -325,11 +339,28 @@ UFlecsNetShardBase* UFlecsIrisReplicationBridge::FindOrCreateShard(const FFlecsN
 UFlecsDontFragmentTable* UFlecsIrisReplicationBridge::CreateDontFragmentTable(
 	const FFlecsReplicationKey& InReplicationKey)
 {
+	if UNLIKELY_IF(!HasAuthority())
+	{
+		UE_LOG(LogFlecsCore, Error, TEXT("Cannot create a Flecs don't fragment table without authority"));
+		return nullptr;
+	}
+	
+	const TSolidNotNull<UFlecsDontFragmentTable*> Table = NewObject<UFlecsDontFragmentTable>(this);
+	Table->SetOwningNetworkWorldSubsystem(GetNetworkWorldSubsystem());
+	Table->InitializeDontFragmentTable(InReplicationKey);
+	Table->StartShardReplication();
+	
+	return Table;
 }
 
-UFlecsDontFragmentTable* UFlecsIrisReplicationBridge::FindOrCreateDontFragmentTable(
-	const FFlecsReplicationKey& InReplicationKey)
+UFlecsDontFragmentTable* UFlecsIrisReplicationBridge::FindOrCreateDontFragmentTable(const FFlecsReplicationKey& InReplicationKey)
 {
+	if (TObjectPtr<UFlecsDontFragmentTable>* ExistingTable = DontFragmentTables.Find(InReplicationKey))
+	{
+		return *ExistingTable;
+	}
+	
+	return DontFragmentTables.Add(InReplicationKey, CreateDontFragmentTable(InReplicationKey));
 }
 
 void UFlecsIrisReplicationBridge::ReleaseShardIfEmpty(UFlecsNetShardBase* InShard,

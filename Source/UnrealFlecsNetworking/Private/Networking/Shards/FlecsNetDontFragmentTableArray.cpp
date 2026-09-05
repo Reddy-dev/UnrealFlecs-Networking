@@ -42,8 +42,7 @@ void FFlecsNetDontFragmentEntityTableArray::PostReplicatedAdd(const TArrayView<i
 	PostReplicatedChange(AddedIndices, FinalSize);
 }
 
-void FFlecsNetDontFragmentEntityTableArray::PostReplicatedChange(const TArrayView<int32>& ChangedIndices,
-	int32 FinalSize)
+void FFlecsNetDontFragmentEntityTableArray::PostReplicatedChange(const TArrayView<int32>& ChangedIndices, int32 FinalSize)
 {
 	UFlecsDontFragmentTable* Table = Owner.Get();
 	if UNLIKELY_IF(!Table)
