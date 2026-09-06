@@ -71,6 +71,68 @@ FLECS_REPLICATION_TEST_CLASS_WITH_FLAGS_AND_TAGS(FlecsReplicationBridgeTests,
 		ASSERT_THAT(IsTrue(Registry.Find(TagDescriptor->GetSchemaId()) == TagDescriptor));
 	}
 
+	TEST_METHOD(DontFragmentReplicationPair_ResolvesPrimaryStorageDescriptor)
+	{
+		const FFlecsId DontFragmentValueId =
+			World()->RegisterComponentType<FFlecsReplicationTestDontFragmentValue>().GetFlecsId();
+		const FFlecsId RelationshipId =
+			World()->RegisterComponentType<FFlecsReplicationTestRelationship>().GetFlecsId();
+		const FFlecsId PairId = FFlecsId::MakePair(DontFragmentValueId, RelationshipId);
+
+		const TValueOrError<FFlecsReplicationKey, FString> ReplicationKeyResult =
+			FFlecsReplicationKey::BuildKey(World(), PairId);
+		ASSERT_THAT(IsFalse(ReplicationKeyResult.HasError()));
+		if (ReplicationKeyResult.HasError())
+		{
+			return;
+		}
+
+		const FFlecsReplicationKey& ReplicationKey = ReplicationKeyResult.GetValue();
+		const FFlecsComponentReplicationDescriptor* Descriptor =
+			ReplicationKey.TryGetStorageDescriptor(World());
+
+		ASSERT_THAT(IsTrue(ReplicationKey.Kind == EFlecsReplicationKeyKind::Pair));
+		ASSERT_THAT(IsTrue(ReplicationKey.StorageKind == EFlecsReplicationKeyStorageKind::Primary));
+		ASSERT_THAT(IsTrue(ReplicationKey.Primary.Kind == EFlecsReplicationPairTargetKind::Schema));
+		ASSERT_THAT(IsNotNull(Descriptor));
+		if (Descriptor)
+		{
+			ASSERT_THAT(IsTrue(Descriptor->GetLocalFlecsId() == DontFragmentValueId));
+			ASSERT_THAT(IsTrue(Descriptor->IsDontFragment()));
+		}
+	}
+
+	TEST_METHOD(DontFragmentReplicationPair_ResolvesSecondaryStorageDescriptor)
+	{
+		const FFlecsId RelationshipId =
+			World()->RegisterComponentType<FFlecsReplicationTestRelationship>().GetFlecsId();
+		const FFlecsId DontFragmentValueId =
+			World()->RegisterComponentType<FFlecsReplicationTestDontFragmentValue>().GetFlecsId();
+		const FFlecsId PairId = FFlecsId::MakePair(RelationshipId, DontFragmentValueId);
+
+		const TValueOrError<FFlecsReplicationKey, FString> ReplicationKeyResult =
+			FFlecsReplicationKey::BuildKey(World(), PairId);
+		ASSERT_THAT(IsFalse(ReplicationKeyResult.HasError()));
+		if (ReplicationKeyResult.HasError())
+		{
+			return;
+		}
+
+		const FFlecsReplicationKey& ReplicationKey = ReplicationKeyResult.GetValue();
+		const FFlecsComponentReplicationDescriptor* Descriptor =
+			ReplicationKey.TryGetStorageDescriptor(World());
+
+		ASSERT_THAT(IsTrue(ReplicationKey.Kind == EFlecsReplicationKeyKind::Pair));
+		ASSERT_THAT(IsTrue(ReplicationKey.StorageKind == EFlecsReplicationKeyStorageKind::Secondary));
+		ASSERT_THAT(IsTrue(ReplicationKey.Secondary.Kind == EFlecsReplicationPairTargetKind::Schema));
+		ASSERT_THAT(IsNotNull(Descriptor));
+		if (Descriptor)
+		{
+			ASSERT_THAT(IsTrue(Descriptor->GetLocalFlecsId() == DontFragmentValueId));
+			ASSERT_THAT(IsTrue(Descriptor->IsDontFragment()));
+		}
+	}
+
 	TEST_METHOD(DontFragmentComponent_CapturesPublicationRemovalAndResetThroughFakeBridge)
 	{
 		const FFlecsId ComponentId =
