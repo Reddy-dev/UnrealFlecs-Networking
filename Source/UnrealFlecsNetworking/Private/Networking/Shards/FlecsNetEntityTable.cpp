@@ -21,6 +21,8 @@ void UFlecsNetEntityTable::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>&
 
 	FDoRepLifetimeParams LifetimeParams;
 	LifetimeParams.bIsPushBased = true;
+	LifetimeParams.RepNotifyCondition = REPNOTIFY_Always;
+	
 	DOREPLIFETIME_WITH_PARAMS_FAST(UFlecsNetEntityTable, EntityTable, LifetimeParams);
 }
 

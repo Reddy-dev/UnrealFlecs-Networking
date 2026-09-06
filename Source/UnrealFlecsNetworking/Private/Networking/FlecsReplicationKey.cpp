@@ -53,6 +53,7 @@ TValueOrError<FFlecsReplicationIndividualKey, FString> FFlecsReplicationIndividu
 	{
 		Result.Kind = EFlecsReplicationPairTargetKind::Schema;
 		Result.Schema = Descriptor->SchemaId;
+		return MakeValue(Result);
 	}
 	
 	if UNLIKELY_IF(!ensureAlwaysMsgf(InId.IsValid(), TEXT("Invalid Flecs ID")))

@@ -99,7 +99,7 @@ protected:
 	void HandleWorldPreActorTick(UWorld* InWorld, ELevelTick, float);
 	void StartOwningNetworkWorldSubsystemRetry();
 	void StopOwningNetworkWorldSubsystemRetry();
-	void FlushPendingReplicationUpdates();
+	virtual void FlushPendingReplicationUpdates();
 	
 	void ApplyReplicationProfile() const;
 

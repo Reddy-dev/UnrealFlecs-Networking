@@ -8,6 +8,7 @@
 #include "Worlds/FlecsAbstractWorldSubsystem.h"
 
 #include "Networking/FlecsNetworkId.h"
+#include "Networking/FlecsDontFragmentReplicationUpdateQueue.h"
 #include "Networking/FlecsReplicationShardSelection.h"
 #include "Networking/FlecsReplicationUpdateQueue.h"
 #include "Networking/Layout/FlecsDontFragmentReplicationSnapshot.h"
@@ -132,8 +133,12 @@ public:
 	void ReceiveNetworkEntitySnapshot(const FFlecsNetworkId& InNetworkId, const FFlecsEntityReplicationSnapshot& InSnapshot);
 	void RemoveReceivedNetworkEntity(const FFlecsNetworkId& InNetworkId, uint32 InStateRevision);
 	
-	void ReceiveNetworkDontFragmentSnapshot(const FFlecsNetworkId& InNetworkId, const FFlecsDontFragmentReplicationSnapshot& InSnapshot);
-	void RemoveReceivedNetworkDontFragmentEntity(const FFlecsNetworkId& InNetworkId, uint32 InStateRevision);
+	void ReceiveNetworkDontFragmentSnapshot(const FFlecsNetworkId& InNetworkId,
+		const FFlecsReplicationKey& InReplicationKey,
+		const FFlecsDontFragmentReplicationSnapshot& InSnapshot);
+	void RemoveReceivedNetworkDontFragmentComponent(const FFlecsNetworkId& InNetworkId,
+		const FFlecsReplicationKey& InReplicationKey,
+		uint32 InStateRevision);
 
 	UFUNCTION(BlueprintCallable, Category = "Flecs|Networking")
 	FFlecsEntityHandle RegisterReplicationProfileAsset(const UFlecsReplicationProfileDataAsset* InAsset);
@@ -179,6 +184,12 @@ protected:
 	void ApplyReceivedNetworkEntitySnapshot(const FFlecsNetworkId& InNetworkId, const FFlecsEntityReplicationSnapshot& InSnapshot);
 	
 	void ApplyReceivedNetworkEntityRemoval(const FFlecsNetworkId& InNetworkId, uint32 InStateRevision);
+	void ApplyQueuedDontFragmentReplicationUpdates();
+	void ApplyReceivedNetworkDontFragmentSnapshot(const FFlecsEntityHandle& InEntityHandle,
+		const FFlecsReplicationKey& InReplicationKey,
+		const FFlecsDontFragmentReplicationSnapshot& InSnapshot);
+	void ApplyReceivedNetworkDontFragmentRemoval(const FFlecsEntityHandle& InEntityHandle,
+		const FFlecsReplicationKey& InReplicationKey);
 	void ApplyPendingLayoutDefinitions(const TSolidNotNull<const UFlecsWorldInterfaceObject*> InWorld);
 	void ApplyDeferredEntityLayouts();
 	
@@ -206,6 +217,7 @@ protected:
 	TMap<FName, FFlecsEntityHandle> ReplicationProfilePrefabs;
 	TMap<FName, FFlecsReplicationShardSelectorFunction> ReplicationShardSelectors;
 	FFlecsReplicationUpdateQueue ReplicationUpdateQueue;
+	FFlecsDontFragmentReplicationUpdateQueue DontFragmentReplicationUpdateQueue;
 	
 	UPROPERTY()
 	TArray<FFlecsObserverHandle> ComponentDirtyObservers;

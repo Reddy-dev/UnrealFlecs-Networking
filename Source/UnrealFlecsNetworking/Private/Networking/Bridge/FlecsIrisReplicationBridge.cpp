@@ -175,6 +175,20 @@ void UFlecsIrisReplicationBridge::PublishDontFragmentComponent(const FFlecsNetwo
 	DontFragmentTable->PublishDontFragmentNetEntity(InNetworkId, InSnapshot);
 }
 
+void UFlecsIrisReplicationBridge::RemoveDontFragmentComponent(const FFlecsNetworkId InNetworkId,
+	const FFlecsReplicationKey& InReplicationKey)
+{
+	if UNLIKELY_IF(!HasAuthority() || !InNetworkId.IsValid())
+	{
+		return;
+	}
+
+	if (UFlecsDontFragmentTable* DontFragmentTable = DontFragmentTables.FindRef(InReplicationKey))
+	{
+		DontFragmentTable->RemoveNetEntity(InNetworkId, false);
+	}
+}
+
 void UFlecsIrisReplicationBridge::StopReplicatingEntity(const FFlecsEntityHandle& InEntityHandle)
 {
 	if (!HasAuthority())

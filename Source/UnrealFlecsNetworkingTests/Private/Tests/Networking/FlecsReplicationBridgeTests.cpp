@@ -9,6 +9,7 @@
 #include "UObject/UObjectGlobals.h"
 
 #include "Networking/FlecsNetDirtyTag.h"
+#include "Networking/FlecsComponentReplicationDescriptor.h"
 #include "Networking/Profiles/FlecsReplicationProfile.h"
 #include "Networking/Profiles/FlecsReplicationProfileDataAsset.h"
 #include "Networking/FlecsReplicationShardSelection.h"
@@ -34,6 +35,40 @@ FLECS_REPLICATION_TEST_CLASS_WITH_FLAGS_AND_TAGS(FlecsReplicationBridgeTests,
 		ASSERT_THAT(IsNotNull(TestBridge()));
 		ASSERT_THAT(IsTrue(TestBridge()->IsInitialized()));
 		ASSERT_THAT(IsTrue(NetworkSubsystem()->GetReplicationBridge() == TestBridge()));
+	}
+
+	TEST_METHOD(DontFragmentReplicatedComponents_RegisterDescriptors)
+	{
+		const FFlecsComponentReplicationRegistry& Registry =
+			FFlecsComponentReplicationRegistry::Get(World());
+
+		const FFlecsId ValueComponentId =
+			World()->RegisterComponentType<FFlecsReplicationTestDontFragmentValue>().GetFlecsId();
+		const FFlecsComponentReplicationDescriptor* ValueDescriptor = Registry.Find(ValueComponentId);
+		ASSERT_THAT(IsNotNull(ValueDescriptor));
+		if (!ValueDescriptor)
+		{
+			return;
+		}
+
+		ASSERT_THAT(IsTrue(ValueDescriptor->IsDontFragment()));
+		ASSERT_THAT(IsFalse(ValueDescriptor->IsTag()));
+		ASSERT_THAT(IsTrue(ValueDescriptor->IsStorageEligible()));
+		ASSERT_THAT(IsTrue(Registry.Find(ValueDescriptor->GetSchemaId()) == ValueDescriptor));
+
+		const FFlecsId TagComponentId =
+			World()->RegisterComponentType<FFlecsReplicationTestDontFragmentTag>().GetFlecsId();
+		const FFlecsComponentReplicationDescriptor* TagDescriptor = Registry.Find(TagComponentId);
+		ASSERT_THAT(IsNotNull(TagDescriptor));
+		if (!TagDescriptor)
+		{
+			return;
+		}
+
+		ASSERT_THAT(IsTrue(TagDescriptor->IsDontFragment()));
+		ASSERT_THAT(IsTrue(TagDescriptor->IsTag()));
+		ASSERT_THAT(IsFalse(TagDescriptor->IsStorageEligible()));
+		ASSERT_THAT(IsTrue(Registry.Find(TagDescriptor->GetSchemaId()) == TagDescriptor));
 	}
 
 	TEST_METHOD(DontFragmentComponent_CapturesPublicationRemovalAndResetThroughFakeBridge)

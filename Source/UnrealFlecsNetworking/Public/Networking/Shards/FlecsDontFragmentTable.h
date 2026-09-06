@@ -4,6 +4,7 @@
 
 #include "FlecsNetShardBase.h"
 #include "FlecsNetDontFragmentTableArray.h"
+#include "Networking/FlecsDontFragmentReplicationUpdateQueue.h"
 #include "Networking/Layout/FlecsDontFragmentReplicationSnapshot.h"
 
 #include "FlecsDontFragmentTable.generated.h"
@@ -17,6 +18,7 @@ class UNREALFLECSNETWORKING_API UFlecsDontFragmentTable : public UFlecsNetShardB
 	GENERATED_BODY()
 	
 public:
+	virtual void PostInitProperties() override;
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void ConfigureObjectSettings(UE::Net::FRootObjectSettings& OutSettings) const override;
 	
@@ -46,11 +48,17 @@ public:
 	NO_DISCARD bool HasEntity(const FFlecsNetworkId InNetworkId) const;
 	
 protected:
+	virtual void FlushPendingReplicationUpdates() override;
 	
-	UPROPERTY(Replicated)
+	UPROPERTY(ReplicatedUsing = OnRep_DontFragmentKey)
 	FFlecsReplicationKey DontFragmentKey;
+
+	UFUNCTION()
+	void OnRep_DontFragmentKey();
 	
 	UPROPERTY(Replicated)
 	FFlecsNetDontFragmentEntityTableArray DontFragmentTable;
+
+	FFlecsDontFragmentReplicationUpdateQueue PendingDontFragmentReplicationUpdateQueue;
 	
 }; // class UFlecsDontFragmentTable

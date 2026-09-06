@@ -106,6 +106,8 @@ public:
 		const FFlecsEntityReplicationSnapshot& InSnapshot) override;
 	virtual void PublishDontFragmentComponent(const FFlecsNetworkId InNetworkId, const FFlecsReplicationKey& InReplicationKey,
 		const FFlecsDontFragmentReplicationSnapshot& InSnapshot) override;
+	virtual void RemoveDontFragmentComponent(const FFlecsNetworkId InNetworkId,
+		const FFlecsReplicationKey& InReplicationKey) override;
 	
 	virtual void StopReplicatingEntity(const FFlecsEntityHandle& InEntityHandle) override;
 	

@@ -9,12 +9,20 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FlecsDontFragmentTable)
 
+void UFlecsDontFragmentTable::PostInitProperties()
+{
+	Super::PostInitProperties();
+
+	DontFragmentTable.SetOwner(this);
+}
+
 void UFlecsDontFragmentTable::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	
 	FDoRepLifetimeParams SharedParams;
 	SharedParams.bIsPushBased = true;
+	SharedParams.RepNotifyCondition = REPNOTIFY_Always;
 	
 	DOREPLIFETIME_WITH_PARAMS_FAST(UFlecsDontFragmentTable, DontFragmentKey, SharedParams);
 	DOREPLIFETIME_WITH_PARAMS_FAST(UFlecsDontFragmentTable, DontFragmentTable, SharedParams);
@@ -39,9 +47,12 @@ void UFlecsDontFragmentTable::InitializeDontFragmentTable(const FFlecsReplicatio
 	MARK_PROPERTY_DIRTY_FROM_NAME(UFlecsDontFragmentTable, DontFragmentKey, this);
 }
 
-// @TODO: tf we do here?
 void UFlecsDontFragmentTable::HandleReplicationDetached()
 {
+	for (const FFlecsNetDontFragmentEntityTableItem& Item : DontFragmentTable.Items)
+	{
+		HandleEntityRemoved(Item.NetworkId, Item.Snapshot.StateRevision);
+	}
 }
 
 void UFlecsDontFragmentTable::HandleEntityRemoved(const FFlecsNetworkId InNetworkId, uint32 InStateRevision)
@@ -54,13 +65,15 @@ void UFlecsDontFragmentTable::HandleEntityRemoved(const FFlecsNetworkId InNetwor
 	ResolveOwningNetworkWorldSubsystem();
 	UFlecsNetworkWorldSubsystem* NetworkSubsystem = GetOwningNetworkWorldSubsystem();
 	
-	/*if (!NetworkSubsystem)
+	if (!NetworkSubsystem)
 	{
-		PendingReplicationUpdateQueue.EnqueueRemoval(InNetworkId, InStateRevision);
+		PendingDontFragmentReplicationUpdateQueue.EnqueueRemoval(
+			InNetworkId, DontFragmentKey, InStateRevision);
 		return;
-	}*/
+	}
 
-	NetworkSubsystem->RemoveReceivedNetworkDontFragmentEntity(InNetworkId, InStateRevision);
+	NetworkSubsystem->RemoveReceivedNetworkDontFragmentComponent(
+		InNetworkId, DontFragmentKey, InStateRevision);
 }
 
 void UFlecsDontFragmentTable::HandleEntityUpdated(const FFlecsNetworkId InNetworkId,
@@ -73,15 +86,15 @@ void UFlecsDontFragmentTable::HandleEntityUpdated(const FFlecsNetworkId InNetwor
 
 	ResolveOwningNetworkWorldSubsystem();
 	
-	/*// this may be Null
 	UFlecsNetworkWorldSubsystem* NetworkSubsystem = GetOwningNetworkWorldSubsystem();
 	if UNLIKELY_IF(!NetworkSubsystem)
 	{
-		PendingReplicationUpdateQueue.EnqueueSnapshot(InNetworkId, InSnapshot);
+		PendingDontFragmentReplicationUpdateQueue.EnqueueSnapshot(
+			InNetworkId, DontFragmentKey, InSnapshot);
 		return;
-	}*/
+	}
 
-	GetOwningNetworkWorldSubsystem()->ReceiveNetworkDontFragmentSnapshot(InNetworkId, InSnapshot);
+	NetworkSubsystem->ReceiveNetworkDontFragmentSnapshot(InNetworkId, DontFragmentKey, InSnapshot);
 }
 
 void UFlecsDontFragmentTable::PublishDontFragmentNetEntity(const FFlecsNetworkId& InNetworkId,
@@ -98,6 +111,7 @@ void UFlecsDontFragmentTable::PublishDontFragmentNetEntity(const FFlecsNetworkId
 	if (ExistingIndex != INDEX_NONE)
 	{
 		DontFragmentTable.Items[ExistingIndex].Snapshot = InSnapshot;
+		DontFragmentTable.MarkItemDirty(DontFragmentTable.Items[ExistingIndex]);
 	}
 	else
 	{
@@ -106,6 +120,41 @@ void UFlecsDontFragmentTable::PublishDontFragmentNetEntity(const FFlecsNetworkId
 		Item.Snapshot = InSnapshot;
 		
 		DontFragmentTable.MarkArrayDirty();
+	}
+}
+
+void UFlecsDontFragmentTable::OnRep_DontFragmentKey()
+{
+	for (const FFlecsNetDontFragmentEntityTableItem& Item : DontFragmentTable.Items)
+	{
+		HandleEntityUpdated(Item.NetworkId, Item.Snapshot);
+	}
+}
+
+void UFlecsDontFragmentTable::FlushPendingReplicationUpdates()
+{
+	Super::FlushPendingReplicationUpdates();
+
+	UFlecsNetworkWorldSubsystem* NetworkSubsystem = GetOwningNetworkWorldSubsystem();
+	if UNLIKELY_IF(!NetworkSubsystem)
+	{
+		return;
+	}
+
+	const TArray<FFlecsDontFragmentReplicationQueuedUpdate> Updates =
+		PendingDontFragmentReplicationUpdateQueue.Drain();
+	for (const FFlecsDontFragmentReplicationQueuedUpdate& Update : Updates)
+	{
+		if (Update.bRemove)
+		{
+			NetworkSubsystem->RemoveReceivedNetworkDontFragmentComponent(
+				Update.NetworkId, Update.ReplicationKey, Update.StateRevision);
+		}
+		else
+		{
+			NetworkSubsystem->ReceiveNetworkDontFragmentSnapshot(
+				Update.NetworkId, Update.ReplicationKey, Update.Snapshot);
+		}
 	}
 }
 

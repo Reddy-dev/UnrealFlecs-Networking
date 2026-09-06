@@ -105,6 +105,7 @@ void UFlecsNetworkWorldSubsystem::Deinitialize()
 	ReplicationProfilePrefabs.Reset();
 	ReplicationShardSelectors.Reset();
 	ReplicationUpdateQueue.Reset();
+	DontFragmentReplicationUpdateQueue.Reset();
 	
 	Super::Deinitialize();
 }
@@ -394,18 +395,27 @@ void UFlecsNetworkWorldSubsystem::RemoveReceivedNetworkEntity(const FFlecsNetwor
 }
 
 void UFlecsNetworkWorldSubsystem::ReceiveNetworkDontFragmentSnapshot(const FFlecsNetworkId& InNetworkId,
+	const FFlecsReplicationKey& InReplicationKey,
 	const FFlecsDontFragmentReplicationSnapshot& InSnapshot)
 {
+	if UNLIKELY_IF(HasAuthority() || !InNetworkId.IsValid())
+	{
+		return;
+	}
+
+	DontFragmentReplicationUpdateQueue.EnqueueSnapshot(InNetworkId, InReplicationKey, InSnapshot);
 }
 
-void UFlecsNetworkWorldSubsystem::RemoveReceivedNetworkDontFragmentEntity(const FFlecsNetworkId& InNetworkId,
-	uint32 InStateRevision)
+void UFlecsNetworkWorldSubsystem::RemoveReceivedNetworkDontFragmentComponent(const FFlecsNetworkId& InNetworkId,
+	const FFlecsReplicationKey& InReplicationKey,
+	const uint32 InStateRevision)
 {
-	const FFlecsEntityHandle* EntityHandle = NetworkIdToEntityMap.Find(InNetworkId);
-	if (EntityHandle && EntityHandle->IsValid())
+	if UNLIKELY_IF(HasAuthority() || !InNetworkId.IsValid())
 	{
-		StopReplicatingEntity(*EntityHandle);
+		return;
 	}
+
+	DontFragmentReplicationUpdateQueue.EnqueueRemoval(InNetworkId, InReplicationKey, InStateRevision);
 }
 
 void UFlecsNetworkWorldSubsystem::QueueReplicationSnapshot(const FFlecsNetworkId& InNetworkId,
@@ -450,6 +460,7 @@ void UFlecsNetworkWorldSubsystem::ApplyQueuedReplicationUpdates(const TSolidNotN
 
 	ApplyPendingLayoutDefinitions(InWorld);
 	ApplyDeferredEntityLayouts();
+	ApplyQueuedDontFragmentReplicationUpdates();
 }
 
 void UFlecsNetworkWorldSubsystem::RegisterFragmentingIndividualComponentDirtyObservers(const FFlecsComponentReplicationDescriptor& InDescriptor)
@@ -960,6 +971,181 @@ void UFlecsNetworkWorldSubsystem::ApplyReceivedNetworkEntityRemoval(const FFlecs
 			It.RemoveCurrent();
 		}
 	}
+}
+
+void UFlecsNetworkWorldSubsystem::ApplyQueuedDontFragmentReplicationUpdates()
+{
+	const TArray<FFlecsDontFragmentReplicationQueuedUpdate> Updates =
+		DontFragmentReplicationUpdateQueue.Drain();
+
+	for (const FFlecsDontFragmentReplicationQueuedUpdate& Update : Updates)
+	{
+		if UNLIKELY_IF(!Update.NetworkId.IsValid())
+		{
+			UE_LOG(LogFlecsWorld, Error, TEXT("DontFragment replication queue contains an invalid network ID"));
+			continue;
+		}
+
+		const FFlecsEntityHandle* EntityHandle = NetworkIdToEntityMap.Find(Update.NetworkId);
+		if (!EntityHandle || !EntityHandle->IsValid())
+		{
+			if (!RemovedEntityRevisions.Contains(Update.NetworkId))
+			{
+				if (Update.bRemove)
+				{
+					DontFragmentReplicationUpdateQueue.EnqueueRemoval(
+						Update.NetworkId, Update.ReplicationKey, Update.StateRevision);
+				}
+				else
+				{
+					DontFragmentReplicationUpdateQueue.EnqueueSnapshot(
+						Update.NetworkId, Update.ReplicationKey, Update.Snapshot);
+				}
+			}
+
+			continue;
+		}
+
+		if (Update.bRemove)
+		{
+			ApplyReceivedNetworkDontFragmentRemoval(*EntityHandle, Update.ReplicationKey);
+		}
+		else
+		{
+			ApplyReceivedNetworkDontFragmentSnapshot(*EntityHandle, Update.ReplicationKey, Update.Snapshot);
+		}
+	}
+}
+
+void UFlecsNetworkWorldSubsystem::ApplyReceivedNetworkDontFragmentSnapshot(
+	const FFlecsEntityHandle& InEntityHandle,
+	const FFlecsReplicationKey& InReplicationKey,
+	const FFlecsDontFragmentReplicationSnapshot& InSnapshot)
+{
+	const TSolidNotNull<UFlecsWorld*> World = GetFlecsWorldChecked();
+	const FFlecsId ComponentId = FFlecsReplicationKey::ResolveToId(World, InReplicationKey);
+	
+	FFlecsComponentReplicationRegistry& Registry = FFlecsComponentReplicationRegistry::Get(World);
+	
+	const FFlecsComponentReplicationDescriptor* Descriptor = InReplicationKey.TryGetStorageDescriptor(World);
+	
+	if (!Descriptor)
+	{
+		FFlecsId FirstId;
+		FFlecsId SecondId;
+		if (ComponentId.IsPair())
+		{
+			FirstId = ComponentId.GetFirst();
+			SecondId = ComponentId.GetSecond();
+		}
+		else
+		{
+			FirstId = ComponentId;
+		}
+		
+		if (FirstId.IsValid())
+		{
+			Descriptor = Registry.Find(FirstId);
+			// @TODO: Error if not a tag, since it missed out on the first time anyway?
+			/*if UNLIKELY_IF(!Descriptor->IsTag())
+			{
+				UE_LOG(LogFlecsWorld, Error,
+					TEXT("Descriptor first wasn't 
+					*InEntityHandle.ToString(), *InReplicationKey.CanonicalString());
+				return;
+			}*/
+		}
+	}
+
+	if UNLIKELY_IF(!ComponentId.IsValid() || !Descriptor || !Descriptor->IsDontFragment())
+	{
+		UE_LOG(LogFlecsWorld, Error,
+			TEXT("Cannot apply DontFragment snapshot to entity %s because key '%s' is not registered as DontFragment"),
+			*InEntityHandle.ToString(), *InReplicationKey.CanonicalString());
+		return;
+	}
+
+	if (Descriptor->IsTag())
+	{
+		InEntityHandle.Add(ComponentId);
+		return;
+	}
+
+	if UNLIKELY_IF(!Descriptor->GetDeserializeFunction() || !Descriptor->GetConstructFunction()
+		|| !Descriptor->GetDestroyFunction())
+	{
+		UE_LOG(LogFlecsWorld, Error,
+			TEXT("Cannot deserialize DontFragment snapshot for entity %s and component key '%s'"),
+			*InEntityHandle.ToString(), *InReplicationKey.CanonicalString());
+		return;
+	}
+
+	void* ComponentData = FMemory::Malloc(Descriptor->GetSize(), Descriptor->GetAlignment());
+	solid_cassume(ComponentData);
+	Descriptor->GetConstructFunction()(ComponentData);
+
+	FMemoryReader Reader(InSnapshot.SnapshotData, true);
+	const bool bDeserialized = Descriptor->GetDeserializeFunction()(Reader, ComponentData);
+	if UNLIKELY_IF(!bDeserialized || Reader.IsError())
+	{
+		UE_LOG(LogFlecsWorld, Error,
+			TEXT("Cannot deserialize DontFragment snapshot for entity %s and component key '%s'"),
+			*InEntityHandle.ToString(), *InReplicationKey.CanonicalString());
+		Descriptor->GetDestroyFunction()(ComponentData);
+		FMemory::Free(ComponentData);
+		return;
+	}
+
+	InEntityHandle.Set(ComponentId, Descriptor->GetSize(), ComponentData);
+	Descriptor->GetDestroyFunction()(ComponentData);
+	FMemory::Free(ComponentData);
+}
+
+void UFlecsNetworkWorldSubsystem::ApplyReceivedNetworkDontFragmentRemoval(
+	const FFlecsEntityHandle& InEntityHandle,
+	const FFlecsReplicationKey& InReplicationKey)
+{
+	const TSolidNotNull<UFlecsWorld*> World = GetFlecsWorldChecked();
+	const FFlecsId ComponentId = FFlecsReplicationKey::ResolveToId(World, InReplicationKey);
+	
+	FFlecsComponentReplicationRegistry& Registry = FFlecsComponentReplicationRegistry::Get(World);
+	
+	const FFlecsComponentReplicationDescriptor* Descriptor = InReplicationKey.TryGetStorageDescriptor(World);
+	
+	if (!Descriptor)
+	{
+		FFlecsId FirstId;
+		FFlecsId SecondId;
+		if (ComponentId.IsPair())
+		{
+			FirstId = ComponentId.GetFirst();
+			SecondId = ComponentId.GetSecond();
+		}
+		else
+		{
+			FirstId = ComponentId;
+		}
+
+		Descriptor = Registry.Find(FirstId);
+		// @TODO: Error if not a tag, since it missed out on the first time anyway?
+		/*if UNLIKELY_IF(!Descriptor->IsTag())
+			{
+				UE_LOG(LogFlecsWorld, Error,
+					TEXT("Descriptor first wasn't 
+					*InEntityHandle.ToString(), *InReplicationKey.CanonicalString());
+				return;
+			}*/
+	}
+
+	if UNLIKELY_IF(!ComponentId.IsValid() || !Descriptor || !Descriptor->IsDontFragment())
+	{
+		UE_LOG(LogFlecsWorld, Error,
+			TEXT("Cannot remove DontFragment component from entity %s because key '%s' is not registered as DontFragment"),
+			*InEntityHandle.ToString(), *InReplicationKey.CanonicalString());
+		return;
+	}
+
+	InEntityHandle.Remove(ComponentId);
 }
 
 void UFlecsNetworkWorldSubsystem::ApplyPendingLayoutDefinitions(const TSolidNotNull<const UFlecsWorldInterfaceObject*> InWorld)

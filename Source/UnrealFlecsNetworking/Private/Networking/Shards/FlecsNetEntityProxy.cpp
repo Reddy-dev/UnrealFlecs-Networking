@@ -19,6 +19,7 @@ void UFlecsNetEntityProxy::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>&
 
 	FDoRepLifetimeParams Params;
 	Params.bIsPushBased = true;
+	Params.RepNotifyCondition  = REPNOTIFY_Always;
 
 	DOREPLIFETIME_WITH_PARAMS_FAST(UFlecsNetEntityProxy, NetworkId, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(UFlecsNetEntityProxy, Snapshot, Params);
