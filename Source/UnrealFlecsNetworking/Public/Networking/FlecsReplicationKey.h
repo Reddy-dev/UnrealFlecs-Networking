@@ -163,6 +163,8 @@ struct UNREALFLECSNETWORKING_API FFlecsReplicationKey
 	
 	friend bool operator==(const FFlecsReplicationKey&, const FFlecsReplicationKey&) = default;
 	
+	NO_DISCARD const FFlecsComponentReplicationDescriptor* TryGetDominantDescriptor(
+		const TSolidNotNull<const UFlecsWorldInterfaceObject*> InWorld) const;
 	NO_DISCARD const FFlecsComponentReplicationDescriptor* TryGetStorageDescriptor(
 		const TSolidNotNull<const UFlecsWorldInterfaceObject*> InWorld) const;
 	

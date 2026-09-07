@@ -26,9 +26,13 @@ protected:
 		RegisterReplicationComponent<FFlecsReplicationTestRequiredTag>();
 		RegisterReplicationComponent<FFlecsReplicationTestValue>();
 		RegisterReplicationComponent<FFlecsReplicationTestDontFragmentValue>();
+		RegisterReplicationComponent<FFlecsReplicationTestDontFragmentTag>();
 		RegisterReplicationComponent<FFlecsReplicationTestNativeValue>();
 		RegisterReplicationComponent<FFlecsReplicationTestTag>();
 		RegisterReplicationComponent<FFlecsReplicationTestRelationship>();
+		RegisterReplicationComponent<FFlecsReplicationTestTarget>();
+		RegisterReplicationComponent<FFlecsReplicationTestDontFragmentValueRelationship>();
+		RegisterReplicationComponent<FFlecsReplicationTestDontFragmentValueTarget>();
 		RegisterReplicationComponent<FFlecsReplicationTestValueRelationship>();
 		RegisterReplicationComponent<FFlecsReplicationTestWithValue>();
 	}

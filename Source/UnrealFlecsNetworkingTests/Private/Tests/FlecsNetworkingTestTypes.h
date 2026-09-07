@@ -28,6 +28,8 @@ USTRUCT()
 struct FFlecsReplicationTestDontFragmentValue
 {
 	GENERATED_BODY()
+	
+	static constexpr bool DontFragment = true;
 
 	UPROPERTY()
 	int32 Value = 0;
@@ -46,6 +48,8 @@ USTRUCT()
 struct FFlecsReplicationTestDontFragmentTag
 {
 	GENERATED_BODY()
+	
+	static constexpr bool DontFragment = true;
 };
 
 template <>
@@ -139,6 +143,58 @@ struct TFlecsComponentTraits<FFlecsReplicationTestRelationship> : TFlecsComponen
 	static constexpr bool AutoRegister = false;
 	static constexpr bool Replicate = true;
 	static constexpr bool Relationship = true;
+};
+
+USTRUCT()
+struct FFlecsReplicationTestTarget
+{
+	GENERATED_BODY()
+};
+
+template <>
+struct TFlecsComponentTraits<FFlecsReplicationTestTarget> : TFlecsComponentTraitsBase<FFlecsReplicationTestTarget>
+{
+	static constexpr bool AutoRegister = false;
+	static constexpr bool Replicate = true;
+	static constexpr bool Target = true;
+};
+
+USTRUCT()
+struct FFlecsReplicationTestDontFragmentValueRelationship
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	int32 Value = 0;
+};
+
+template <>
+struct TFlecsComponentTraits<FFlecsReplicationTestDontFragmentValueRelationship>
+	: TFlecsComponentTraitsBase<FFlecsReplicationTestDontFragmentValueRelationship>
+{
+	static constexpr bool AutoRegister = false;
+	static constexpr bool DontFragment = true;
+	static constexpr bool Replicate = true;
+	static constexpr bool Relationship = true;
+};
+
+USTRUCT()
+struct FFlecsReplicationTestDontFragmentValueTarget
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	int32 Value = 0;
+};
+
+template <>
+struct TFlecsComponentTraits<FFlecsReplicationTestDontFragmentValueTarget>
+	: TFlecsComponentTraitsBase<FFlecsReplicationTestDontFragmentValueTarget>
+{
+	static constexpr bool AutoRegister = false;
+	static constexpr bool DontFragment = true;
+	static constexpr bool Replicate = true;
+	static constexpr bool Target = true;
 };
 
 USTRUCT()

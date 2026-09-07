@@ -69,6 +69,9 @@ namespace UE::Flecs::Tests::MissingNetwork
 		RegisterReplicationComponent<FFlecsReplicationTestRequiredTag>(World);
 		RegisterReplicationComponent<FFlecsReplicationTestWithValue>(World);
 		RegisterReplicationComponent<FFlecsReplicationTestRelationship>(World);
+		RegisterReplicationComponent<FFlecsReplicationTestTarget>(World);
+		RegisterReplicationComponent<FFlecsReplicationTestDontFragmentValueRelationship>(World);
+		RegisterReplicationComponent<FFlecsReplicationTestDontFragmentValueTarget>(World);
 
 		return World;
 	}
@@ -144,6 +147,24 @@ namespace UE::Flecs::Tests::MissingNetwork
 	{
 		const FFlecsEntityHandle Entity = FindNetworkEntity(InWorld, InNetworkId);
 		return Entity.Has<FFlecsReplicationTestDontFragmentTag>();
+	}
+
+	static bool HasReplicatedDontFragmentValueRelationshipPair(UFlecsWorld* InWorld,
+		const FFlecsNetworkId& InNetworkId, const FFlecsId InSecondId, const int32 InValue)
+	{
+		const FFlecsEntityHandle Entity = FindNetworkEntity(InWorld, InNetworkId);
+		const FFlecsReplicationTestDontFragmentValueRelationship* Value =
+			Entity.TryGetPairFirst<FFlecsReplicationTestDontFragmentValueRelationship>(InSecondId);
+		return Value && Value->Value == InValue;
+	}
+
+	static bool HasReplicatedDontFragmentValueTargetPair(UFlecsWorld* InWorld,
+		const FFlecsNetworkId& InNetworkId, const FFlecsId InFirstId, const int32 InValue)
+	{
+		const FFlecsEntityHandle Entity = FindNetworkEntity(InWorld, InNetworkId);
+		const FFlecsReplicationTestDontFragmentValueTarget* Value =
+			Entity.TryGetPairSecond<FFlecsReplicationTestDontFragmentValueTarget>(InFirstId);
+		return Value && Value->Value == InValue;
 	}
 
 	static bool HasValueRelationshipPair(const FFlecsEntityHandle& InEntity, const FFlecsId InTargetId)
@@ -707,6 +728,70 @@ NETWORK_TEST_CLASS(FlecsReplicationAdditionalRealBridgeNetworkTests,
 						State.World, ExpectedNetworkId) == nullptr;
 			});
 	}
+
+	TEST_METHOD(DontFragment_ReplicatesPairWithPrimaryStorage)
+	{
+		Network
+			.ThenServer([this](FState& State)
+			{
+				UE::Flecs::Tests::MissingNetwork::EnsureNetworkTestWorld(State);
+				const FFlecsId TargetId =
+					State.FlecsWorld->RegisterComponentType<FFlecsReplicationTestTarget>().GetFlecsId();
+				State.AuthorityEntity = State.FlecsWorld->CreateEntity()
+					.Set<FFlecsReplicationTestValue>({ 131 })
+					.Add<FFlecsReplicatedEntityComponent>();
+				State.AuthorityEntity.SetPair<FFlecsReplicationTestDontFragmentValueRelationship>(
+					TargetId, FFlecsReplicationTestDontFragmentValueRelationship{ 233 });
+				ExpectedNetworkId = UE::Flecs::Tests::MissingNetwork::GetNetworkId(State.AuthorityEntity);
+			})
+			.ThenClients([](FState& State)
+			{
+				UE::Flecs::Tests::MissingNetwork::EnsureNetworkTestWorld(State);
+			})
+			.UntilClient(TEXT("DontFragment table applies the primary-storage pair"), 0,
+				[this](FState& State)
+			{
+				const FFlecsId TargetId =
+					State.FlecsWorld->RegisterComponentType<FFlecsReplicationTestTarget>().GetFlecsId();
+				return UE::Flecs::Tests::MissingNetwork::HasReplicatedValue(State.FlecsWorld, 131)
+					&& UE::Flecs::Tests::MissingNetwork::FindDontFragmentTable(
+						State.World, ExpectedNetworkId) != nullptr
+					&& UE::Flecs::Tests::MissingNetwork::HasReplicatedDontFragmentValueRelationshipPair(
+						State.FlecsWorld, ExpectedNetworkId, TargetId, 233);
+			});
+	}
+
+	/*TEST_METHOD(DontFragment_ReplicatesPairWithSecondaryStorage)
+	{
+		Network
+			.ThenServer([this](FState& State)
+			{
+				UE::Flecs::Tests::MissingNetwork::EnsureNetworkTestWorld(State);
+				const FFlecsId RelationshipId =
+					State.FlecsWorld->RegisterComponentType<FFlecsReplicationTestRelationship>().GetFlecsId();
+				State.AuthorityEntity = State.FlecsWorld->CreateEntity()
+					.Set<FFlecsReplicationTestValue>({ 137 })
+					.Add<FFlecsReplicatedEntityComponent>();
+				State.AuthorityEntity.SetPairSecond<FFlecsReplicationTestDontFragmentValueTarget>(
+					RelationshipId, FFlecsReplicationTestDontFragmentValueTarget{ 239 });
+				ExpectedNetworkId = UE::Flecs::Tests::MissingNetwork::GetNetworkId(State.AuthorityEntity);
+			})
+			.ThenClients([](FState& State)
+			{
+				UE::Flecs::Tests::MissingNetwork::EnsureNetworkTestWorld(State);
+			})
+			.UntilClient(TEXT("DontFragment table applies the secondary-storage pair"), 0,
+				[this](FState& State)
+			{
+				const FFlecsId RelationshipId =
+					State.FlecsWorld->RegisterComponentType<FFlecsReplicationTestRelationship>().GetFlecsId();
+				return UE::Flecs::Tests::MissingNetwork::HasReplicatedValue(State.FlecsWorld, 137)
+					&& UE::Flecs::Tests::MissingNetwork::FindDontFragmentTable(
+						State.World, ExpectedNetworkId) != nullptr
+					&& UE::Flecs::Tests::MissingNetwork::HasReplicatedDontFragmentValueTargetPair(
+						State.FlecsWorld, ExpectedNetworkId, RelationshipId, 239);
+			});
+	}*/
 
 	TEST_METHOD(LateJoin_ReceivesCreatedAndModifiedFlecsEntity)
 	{

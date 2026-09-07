@@ -537,9 +537,7 @@ void UFlecsNetworkWorldSubsystem::RegisterFragmentingIndividualComponentDirtyObs
 
 void UFlecsNetworkWorldSubsystem::RegisterDontFragmentIndividualComponentDirtyObservers(const FFlecsComponentReplicationDescriptor& InDescriptor)
 {
-	const bool bIsTag = InDescriptor.IsTag();
-	
-	auto CreateObserver = [this, InDescriptor, bIsTag](const FFlecsId InId) -> FFlecsObserverHandle
+	auto CreateObserver = [this](const FFlecsId InId) -> FFlecsObserverHandle
 	{
 		const bool bIsPair = InId.IsPair();
 
@@ -557,19 +555,6 @@ void UFlecsNetworkWorldSubsystem::RegisterDontFragmentIndividualComponentDirtyOb
 		{
 			return FFlecsObserverHandle();
 		}
-		
-		auto ReplicationKeyOutcome 
-			= FFlecsReplicationKey::BuildKey(GetFlecsWorldChecked(), InId, true);
-		
-		if UNLIKELY_IF(ReplicationKeyOutcome.HasError())
-		{
-			UE_LOGFMT(LogFlecsCore, Error,
-				"Failed to build replication key for component '{0}' (Flecs ID: {1}): {2}",
-				*InDescriptor.StableName, *InDescriptor.LocalFlecsId.ToString(), *ReplicationKeyOutcome.GetError());
-			return FFlecsObserverHandle();
-		}
-		
-		FFlecsReplicationKey ReplicationKey = ReplicationKeyOutcome.GetValue();
 
 		const FFlecsObserverHandle DirtyObserverHandle = GetFlecsWorldChecked()->CreateObserver()
 			.With(InId) // 0
@@ -578,12 +563,34 @@ void UFlecsNetworkWorldSubsystem::RegisterDontFragmentIndividualComponentDirtyOb
 			.Event(flecs::OnSet)
 			.Event(flecs::OnAdd)
 			.Event(flecs::OnRemove)
-			.each([this, ReplicationKey, bIsTag, InId](flecs::iter& Iter, size_t Index)
+			.each([this](flecs::iter& Iter, size_t Index)
 			{
 				const FFlecsEntityHandle EntityHandle = Iter.entity(Index);
 				solid_check(EntityHandle.IsValid());
 				
 				const FFlecsNetworkId NetworkId = Iter.field_at<const FFlecsNetworkId>(2, Index);
+				FFlecsId TypeId = FFlecsId(Iter.id(0));
+				
+				auto ReplicationKeyOutcome
+					= FFlecsReplicationKey::BuildKey(GetFlecsWorldChecked(), TypeId, true);
+				
+				if UNLIKELY_IF(ReplicationKeyOutcome.HasError())
+				{
+					UE_LOGFMT(LogFlecsCore, Error,
+						"Failed to build replication key for Flecs ID '%s': %s",
+						*TypeId.ToString(), *ReplicationKeyOutcome.GetError());
+					return;
+				}
+				
+				const FFlecsReplicationKey ReplicationKey = ReplicationKeyOutcome.GetValue();
+				
+				const FFlecsComponentReplicationDescriptor* DescriptorPtr 
+					= ReplicationKey.TryGetDominantDescriptor(GetFlecsWorldChecked());
+				solid_cassume(DescriptorPtr);
+				
+				UE_CLOGFMT(!DescriptorPtr->IsDontFragment(), LogFlecsCore, Error,
+					"Component '{0}' (Flecs ID: {1}) is not marked as 'DontFragment' but is being handled by a 'DontFragment' observer",
+					*DescriptorPtr->StableName, *TypeId.ToString());
 				
 				if (Iter.event() == flecs::OnRemove)
 				{
@@ -595,16 +602,13 @@ void UFlecsNetworkWorldSubsystem::RegisterDontFragmentIndividualComponentDirtyOb
 				FFlecsDontFragmentReplicationSnapshot Snapshot;
 				Snapshot.StateRevision = 0;
 				
-				if (bIsTag)
+				if (DescriptorPtr->IsTag())
 				{
 					Snapshot.SnapshotData = TArray<uint8>();
 				}
 				else
 				{
 					const void* ComponentPtr = Iter.field_at(Index, 0);
-					
-					const TSolidNotNull<const FFlecsComponentReplicationDescriptor*> DescriptorPtr 
-						= FFlecsComponentReplicationRegistry::Get(GetFlecsWorldChecked()).Find(InId);
 				
 					TArray<uint8> SnapshotData;
 					FMemoryWriter MemoryWriter(SnapshotData, true, true);
@@ -616,7 +620,7 @@ void UFlecsNetworkWorldSubsystem::RegisterDontFragmentIndividualComponentDirtyOb
 					{
 						UE_LOGFMT(LogFlecsCore, Error,
 							"Failed to serialize component '{0}' (Flecs ID: {1}) for network ID '{2}'",
-							*DescriptorPtr->StableName, *InId.ToString(), *NetworkId.ToString());
+							*DescriptorPtr->StableName, *TypeId.ToString(), *NetworkId.ToString());
 						return;
 					}
 
@@ -650,12 +654,12 @@ void UFlecsNetworkWorldSubsystem::RegisterDontFragmentIndividualComponentDirtyOb
 		ComponentDirtyObservers.Add(PairFirstObserverHandle);
 	}
 	
-	if UNLIKELY_IF(!PrimaryObserverHandle.IsValid() && !PairFirstObserverHandle.IsValid())
+	/*if UNLIKELY_IF(!PrimaryObserverHandle.IsValid() && (!PairFirstObserverHandle.IsValid() && bPair
 	{
 		UE_LOGFMT(LogFlecsCore, Error,
 			"Failed to register dirty observer for component '%s' (Flecs ID: %s)",
 			*InDescriptor.StableName, *InDescriptor.LocalFlecsId.ToString());
-	}
+	}*/
 }
 
 FFlecsEntityHandle UFlecsNetworkWorldSubsystem::RegisterReplicationProfileAsset(const UFlecsReplicationProfileDataAsset* InAsset)
@@ -1037,6 +1041,9 @@ void UFlecsNetworkWorldSubsystem::ApplyReceivedNetworkDontFragmentSnapshot(
 		{
 			FirstId = ComponentId.GetFirst();
 			SecondId = ComponentId.GetSecond();
+			solid_checkf(SecondId.IsValid(), TEXT("Second ID of pair is not valid"));
+			solid_checkf(SecondId != FFlecsId(flecs::Wildcard), TEXT("Second ID of pair is a wildcard"));
+			solid_checkf(SecondId != FFlecsId(flecs::Any), TEXT("Second ID of pair is 'this'"));
 		}
 		else
 		{

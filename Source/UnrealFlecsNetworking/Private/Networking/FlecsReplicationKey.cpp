@@ -82,6 +82,10 @@ TValueOrError<FFlecsReplicationIndividualKey, FString> FFlecsReplicationIndividu
 		Result.Kind = EFlecsReplicationPairTargetKind::StablePathValue;
 		Result.StableIdentifier = IdEntityHandle.GetPath();
 	}
+	else
+	{
+		return MakeError("Flecs ID does not correspond to a registered component or a valid entity with a stable identifier");
+	}
 
 	return MakeValue(Result);
 }
@@ -274,9 +278,47 @@ FString FFlecsReplicationKey::CanonicalString() const
 	return Result;
 }
 
+const FFlecsComponentReplicationDescriptor* FFlecsReplicationKey::TryGetDominantDescriptor(
+	const TSolidNotNull<const UFlecsWorldInterfaceObject*> InWorld) const
+{
+	solid_checkf(IsValid(InWorld), TEXT("Invalid world passed to TryGetDominantDescriptor"));
+	
+	if (StorageKind == EFlecsReplicationKeyStorageKind::Primary)
+	{
+		return Primary.TryGetDescriptor(InWorld);
+	}
+	else if (StorageKind == EFlecsReplicationKeyStorageKind::Secondary)
+	{
+		return Secondary.TryGetDescriptor(InWorld);
+	}
+	else if (StorageKind == EFlecsReplicationKeyStorageKind::None)
+	{
+		if (Kind == EFlecsReplicationKeyKind::Component)
+		{
+			return Primary.TryGetDescriptor(InWorld);
+		}
+		else if (Kind == EFlecsReplicationKeyKind::Pair)
+		{
+			const FFlecsComponentReplicationDescriptor* PrimaryDescriptor = Primary.TryGetDescriptor(InWorld);
+			
+			if (PrimaryDescriptor)
+			{
+				return PrimaryDescriptor;
+			}
+			
+			// @TODO: Error here?
+			return Secondary.TryGetDescriptor(InWorld);
+		}
+	}
+	
+	return nullptr;
+}
+
 const FFlecsComponentReplicationDescriptor* FFlecsReplicationKey::TryGetStorageDescriptor(
 	const TSolidNotNull<const UFlecsWorldInterfaceObject*> InWorld) const
 {
+	solid_checkf(IsValid(InWorld), TEXT("Invalid world passed to TryGetStorageDescriptor"));
+	
 	// @TODO: Convert to switch
 	if (StorageKind == EFlecsReplicationKeyStorageKind::Primary)
 	{
