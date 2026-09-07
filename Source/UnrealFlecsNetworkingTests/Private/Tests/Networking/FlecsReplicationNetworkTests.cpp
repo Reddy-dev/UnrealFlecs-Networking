@@ -15,7 +15,7 @@
 #include "Networking/Bridge/FlecsReplicationBridgeBase.h"
 #include "Networking/Shards/FlecsNetEntityProxy.h"
 #include "Networking/Subsystem/FlecsNetworkWorldSubsystem.h"
-#include "Pipelines/FlecsDefaultGameLoop.h"
+#include "Pipelines/FlecsDefaultMainGameLoop.h"
 #include "Queries/FlecsQuery.h"
 #include "Fixtures/FlecsTestReplicationBridge.h"
 #include "Tests/FlecsNetworkingTestTypes.h"
@@ -32,7 +32,7 @@ namespace UE::Flecs::Tests
 
 		FFlecsWorldSettingsInfo Settings;
 		Settings.WorldName = TEXT("FlecsReplicationPIE");
-		Settings.GameLoops.AddUnique(NewObject<UFlecsDefaultGameLoop>(WorldSubsystem));
+		Settings.GameLoops.AddUnique(NewObject<UFlecsDefaultMainGameLoop>(WorldSubsystem));
 
 		UFlecsWorld* World = WorldSubsystem->CreateWorld(TEXT("FlecsReplicationPIE"), Settings);
 

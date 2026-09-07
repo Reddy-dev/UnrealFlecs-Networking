@@ -12,6 +12,8 @@ struct FFlecsReplicationUpdateRateComponent
 {
 	GENERATED_BODY()
 	
+	static constexpr flecs::on_instantiate OnInstantiate = flecs::on_instantiate::inherit;
+	
 public:
 	UPROPERTY(EditAnywhere, Category = "Replication")
 	float UpdateRate = 0.f;

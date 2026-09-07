@@ -14,6 +14,8 @@ struct UNREALFLECSNETWORKING_API FFlecsReplicationCullDistanceComponent
 {
 	GENERATED_BODY()
 	
+	static constexpr flecs::on_instantiate OnInstantiate = flecs::on_instantiate::inherit;
+	
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Replication")
 	float CullDistance = 0.f;

@@ -24,7 +24,7 @@
 #include "Networking/Shards/FlecsNetEntityProxy.h"
 #include "Networking/Shards/FlecsNetEntityTable.h"
 #include "Networking/Subsystem/FlecsNetworkWorldSubsystem.h"
-#include "Pipelines/FlecsDefaultGameLoop.h"
+#include "Pipelines/FlecsDefaultMainGameLoop.h"
 #include "Queries/FlecsQuery.h"
 #include "Tests/FlecsNetworkingTestTypes.h"
 #include "Worlds/FlecsWorld.h"
@@ -51,7 +51,7 @@ namespace UE::Flecs::Tests::MissingNetwork
 
 		FFlecsWorldSettingsInfo Settings;
 		Settings.WorldName = TEXT("FlecsReplicationPIEAdditional");
-		Settings.GameLoops.AddUnique(NewObject<UFlecsDefaultGameLoop>(WorldSubsystem));
+		Settings.GameLoops.AddUnique(NewObject<UFlecsDefaultMainGameLoop>(WorldSubsystem));
 
 		UFlecsWorld* World = WorldSubsystem->CreateWorld(TEXT("FlecsReplicationPIEAdditional"), Settings);
 

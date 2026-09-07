@@ -11,6 +11,9 @@ USTRUCT()
 struct UNREALFLECSNETWORKING_API FFlecsObjectPrioritizerRelationship
 {
 	GENERATED_BODY()
+	
+	static constexpr flecs::on_instantiate OnInstantiate = flecs::on_instantiate::inherit;
+	
 }; // struct FFlecsObjectPrioritizerRelationship
 
 template <>
@@ -25,6 +28,9 @@ USTRUCT()
 struct UNREALFLECSNETWORKING_API FFlecsNetFilterRelationship
 {
 	GENERATED_BODY()
+	
+	static constexpr flecs::on_instantiate OnInstantiate = flecs::on_instantiate::inherit;
+	
 }; // struct FFlecsNetFilterRelationship
 
 template <>
@@ -39,6 +45,9 @@ USTRUCT()
 struct UNREALFLECSNETWORKING_API FFlecsNetShardSelectorRelationship
 {
 	GENERATED_BODY()
+	
+	static constexpr flecs::on_instantiate OnInstantiate = flecs::on_instantiate::inherit;
+	
 }; // struct FFlecsNetShardSelectorRelationship
 
 

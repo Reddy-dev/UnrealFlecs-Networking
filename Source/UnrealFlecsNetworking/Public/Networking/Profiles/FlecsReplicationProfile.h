@@ -16,6 +16,8 @@ struct UNREALFLECSNETWORKING_API FFlecsReplicationProfileDefinition
 {
 	GENERATED_BODY()
 	
+	static constexpr flecs::on_instantiate OnInstantiate = flecs::on_instantiate::inherit;
+	
 	// @TODO: make it only flecs components
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Replication")
 	TArray<TInstancedStruct<FFlecsReplicationProfileParamsBase>> ParameterComponents;
@@ -84,6 +86,9 @@ USTRUCT(BlueprintType)
 struct UNREALFLECSNETWORKING_API FFlecsReplicationProfileTag
 {
 	GENERATED_BODY()
+	
+	static constexpr flecs::on_instantiate OnInstantiate = flecs::on_instantiate::inherit;
+
 }; // struct FFlecsReplicationProfileTag
 
 template <>

@@ -12,6 +12,9 @@ USTRUCT()
 struct FFlecsNetAlwaysRelevantTag
 {
 	GENERATED_BODY()
+	
+	static constexpr flecs::on_instantiate OnInstantiate = flecs::on_instantiate::inherit;
+	
 }; // struct FFlecsNetAlwaysRelevantTag
 
 template <>
