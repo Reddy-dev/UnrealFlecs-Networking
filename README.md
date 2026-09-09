@@ -7,4 +7,5 @@ Depends on [Unreal-Flecs](https://github.com/Reddy-dev/Unreal-Flecs)
  Documentation coming soon!
 
 Currently entities are replicated as full snapshots.
-DontFragment components are not yet supported TODO.
+
+Entity Destruction handling is still somewhat wonky.
