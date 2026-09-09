@@ -9,14 +9,6 @@
 
 #include "FlecsNetworkId.generated.h"
 
-/**
- * A session-scoped replicated-entity identity.
- *
- * The low 32 bits are a reusable slot, followed by a generation and a session
- * epoch. The complete value, rather than the slot alone, identifies a remote
- * entity and prevents a reused slot from being mistaken for an older entity.
- * Zero, and every value with a zero epoch, is invalid.
- */
 USTRUCT(BlueprintType)
 struct UNREALFLECSNETWORKING_API FFlecsNetworkId
 {
