@@ -163,6 +163,8 @@ USTRUCT()
 struct FFlecsReplicationTestDontFragmentValueRelationship
 {
 	GENERATED_BODY()
+	
+	static constexpr bool DontFragment = true;
 
 	UPROPERTY()
 	int32 Value = 0;
@@ -182,6 +184,8 @@ USTRUCT()
 struct FFlecsReplicationTestDontFragmentValueTarget
 {
 	GENERATED_BODY()
+	
+	static constexpr bool DontFragment = true;
 
 	UPROPERTY()
 	int32 Value = 0;

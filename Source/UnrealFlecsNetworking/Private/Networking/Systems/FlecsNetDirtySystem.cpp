@@ -20,6 +20,7 @@ void UFlecsNetDirtySystem::BuildSystem(const TSolidNotNull<const UFlecsWorldInte
                                        TFlecsSystemBuilder<>& InBuilder) const
 {
 	InBuilder
+		.Phase(EFlecsPhaseType::PostFrame)
 		.With<FFlecsNetDirtyTag>() // 0
 		.With<FFlecsReplicatedEntityComponent&>() // 1
 		.With<const FFlecsNetworkId>() // 2
@@ -30,8 +31,6 @@ void UFlecsNetDirtySystem::BuildSystem(const TSolidNotNull<const UFlecsWorldInte
 void UFlecsNetDirtySystem::EachIterator(const TSolidNotNull<UFlecsWorldInterfaceObject*> InWorld,
                                         flecs::iter& InIterator, const FFlecsId InIndex)
 {
-	QUICK_SCOPE_CYCLE_COUNTER(STAT_FlecsNetDirtySystem_EachIterator);
-	
 	FFlecsReplicatedEntityComponent& ReplicatedComponent = InIterator.field_at<FFlecsReplicatedEntityComponent>(1, InIndex);
 	const FFlecsNetworkId& NetworkId = InIterator.field_at<const FFlecsNetworkId>(2, InIndex);
 	

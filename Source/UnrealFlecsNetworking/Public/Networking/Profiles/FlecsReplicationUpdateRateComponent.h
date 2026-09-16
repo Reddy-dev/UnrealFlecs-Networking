@@ -37,12 +37,18 @@ struct TFlecsComponentTraits<FFlecsReplicationUpdateRateComponent> : public TFle
 }; // struct TFlecsComponentTraits<FFlecsReplicationUpdateRateComponent>
 
 template <>
+struct TIsPODType<FFlecsReplicationUpdateRateComponent>
+{
+	enum { Value = true };
+}; // struct TIsPODType<FFlecsReplicationUpdateRateComponent>
+
+template <>
 struct TStructOpsTypeTraits<FFlecsReplicationUpdateRateComponent> : public TStructOpsTypeTraitsBase2<FFlecsReplicationUpdateRateComponent>
 {
 	enum
 	{
-		WithCopy = true,
-		WithMoveAssign = true,
+		//WithCopy = true,
+		//WithMoveAssign = true,
 	}; // enum
 	
 }; // struct TStructOpsTypeTraitsBase<FFlecsReplicationCullDistanceComponent>
