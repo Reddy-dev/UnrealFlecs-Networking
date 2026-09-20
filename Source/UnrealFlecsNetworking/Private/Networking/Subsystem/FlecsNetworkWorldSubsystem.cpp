@@ -979,8 +979,7 @@ void UFlecsNetworkWorldSubsystem::ApplyReceivedNetworkEntityRemoval(const FFlecs
 
 void UFlecsNetworkWorldSubsystem::ApplyQueuedDontFragmentReplicationUpdates()
 {
-	const TArray<FFlecsDontFragmentReplicationQueuedUpdate> Updates =
-		DontFragmentReplicationUpdateQueue.Drain();
+	const TArray<FFlecsDontFragmentReplicationQueuedUpdate> Updates = DontFragmentReplicationUpdateQueue.Drain();
 
 	for (const FFlecsDontFragmentReplicationQueuedUpdate& Update : Updates)
 	{
@@ -991,7 +990,7 @@ void UFlecsNetworkWorldSubsystem::ApplyQueuedDontFragmentReplicationUpdates()
 		}
 
 		const FFlecsEntityHandle* EntityHandle = NetworkIdToEntityMap.Find(Update.NetworkId);
-		if (!EntityHandle || !EntityHandle->IsValid())
+		if (!IsValid(EntityHandle))
 		{
 			if (!RemovedEntityRevisions.Contains(Update.NetworkId))
 			{
