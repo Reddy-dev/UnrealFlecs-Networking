@@ -29,7 +29,7 @@ namespace
 
 		FFlecsNetProfileNameTarget Target;
 		Target.Name = InName;
-		InEntity.SetPair<TRelationship, FFlecsNetProfileNameTarget>(MoveTemp(Target));
+		InEntity.SetPair<TRelationship, FFlecsNetProfileNameTarget>(Target);
 	}
 	
 } // namespace

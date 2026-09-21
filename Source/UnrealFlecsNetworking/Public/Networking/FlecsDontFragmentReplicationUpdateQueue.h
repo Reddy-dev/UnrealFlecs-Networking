@@ -76,7 +76,7 @@ public:
 
 	NO_DISCARD UE_FORCEINLINE_HINT TArray<FFlecsDontFragmentReplicationQueuedUpdate> Drain()
 	{
-		return MoveTemp(Updates);
+		return SOLID_MOV(Updates);
 	}
 
 	UE_FORCEINLINE_HINT void Reset()

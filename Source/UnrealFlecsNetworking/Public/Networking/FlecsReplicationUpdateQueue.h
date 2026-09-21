@@ -67,7 +67,7 @@ public:
 
 	NO_DISCARD UE_FORCEINLINE_HINT TArray<FFlecsReplicationQueuedUpdate> Drain()
 	{
-		return MoveTemp(Updates);
+		return SOLID_MOV(Updates);
 	}
 
 	NO_DISCARD UE_FORCEINLINE_HINT int32 Num() const

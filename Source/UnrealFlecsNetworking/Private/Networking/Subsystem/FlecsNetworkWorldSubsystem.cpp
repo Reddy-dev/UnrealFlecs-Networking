@@ -624,7 +624,7 @@ void UFlecsNetworkWorldSubsystem::RegisterDontFragmentIndividualComponentDirtyOb
 						return;
 					}
 
-					Snapshot.SnapshotData = MoveTemp(SnapshotData);
+					Snapshot.SnapshotData = SOLID_MOV(SnapshotData);
 				}
 				
 				GetReplicationBridge()->PublishDontFragmentComponent(NetworkId, 
@@ -810,7 +810,7 @@ bool UFlecsNetworkWorldSubsystem::RegisterReplicationShardSelector(const FName& 
 		return false;
 	}
 
-	ReplicationShardSelectors.Add(InName, MoveTemp(InSelector));
+	ReplicationShardSelectors.Add(InName, SOLID_MOV(InSelector));
 	return true;
 }
 
@@ -1169,7 +1169,7 @@ void UFlecsNetworkWorldSubsystem::ApplyDeferredEntityLayouts()
 			continue;
 		}
 
-		TArray<TPair<FFlecsEntityHandle, FFlecsEntityReplicationSnapshot>> DeferredSnapshots = MoveTemp(It.Value());
+		TArray<TPair<FFlecsEntityHandle, FFlecsEntityReplicationSnapshot>> DeferredSnapshots = SOLID_MOV(It.Value());
 		It.RemoveCurrent();
 
 		for (const TPair<FFlecsEntityHandle, FFlecsEntityReplicationSnapshot>& Pair : DeferredSnapshots)
@@ -1202,8 +1202,6 @@ void UFlecsNetworkWorldSubsystem::ApplyDeferredEntityLayouts()
 void UFlecsNetworkWorldSubsystem::ApplySnapshotToEntity(const FFlecsEntityHandle& InEntityHandle,
 	const FFlecsEntityReplicationSnapshot& InSnapshot)
 {
-	//FFlecsScopedDeferWindow DeferWindow(InEntityHandle.GetFlecsWorldChecked());
-
 	const FFlecsReplicationLayoutDefinition* LayoutDefinition = GetLayoutRegistry().Find(InSnapshot.LayoutId);
 	if UNLIKELY_IF(!LayoutDefinition)
 	{

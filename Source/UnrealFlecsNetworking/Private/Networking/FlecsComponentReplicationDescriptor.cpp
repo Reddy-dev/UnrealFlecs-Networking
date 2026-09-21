@@ -274,7 +274,7 @@ TValueOrError<void, FString> UE::Flecs::Replication::RegisterComponentDefinition
 	Descriptor.Destroy = InDefinition.Destroy;
 
 	TValueOrError<void, FString> RegistrationOutcome
-		= FFlecsComponentReplicationRegistry::Get(InWorld).Register(MoveTemp(Descriptor));
+		= FFlecsComponentReplicationRegistry::Get(InWorld).Register(Descriptor);
 
 	if (RegistrationOutcome.HasError())
 	{

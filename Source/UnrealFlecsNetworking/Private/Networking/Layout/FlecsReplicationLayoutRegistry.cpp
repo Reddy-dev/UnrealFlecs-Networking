@@ -86,7 +86,7 @@ TValueOrError<const FFlecsReplicationLayoutDefinition*, FString> FFlecsReplicati
 			Key.StorageKind = Descriptor && !Descriptor->bIsTag ? EFlecsReplicationKeyStorageKind::Primary 
 				: EFlecsReplicationKeyStorageKind::None;
 			
-			Keys.Add(MoveTemp(Key));
+			Keys.Add(SOLID_MOV(Key));
 			continue;
 		}
 
@@ -122,7 +122,7 @@ TValueOrError<const FFlecsReplicationLayoutDefinition*, FString> FFlecsReplicati
 		Key.StorageKind = StorageKind;
 		Key.Primary = FirstValueOrError.GetValue();
 		Key.Secondary = SecondValueOrError.GetValue();
-		Keys.Add(MoveTemp(Key));
+		Keys.Add(SOLID_MOV(Key));
 	}
 
 	Keys.Sort([](const FFlecsReplicationKey& A, const FFlecsReplicationKey& B)
@@ -131,7 +131,7 @@ TValueOrError<const FFlecsReplicationLayoutDefinition*, FString> FFlecsReplicati
 	});
 
 	FFlecsReplicationLayoutDefinition Definition;
-	Definition.Keys = MoveTemp(Keys);
+	Definition.Keys = SOLID_MOV(Keys);
 	Definition.LayoutId = ComputeLayoutId(Definition.Keys);
 	
 	if (const FFlecsReplicationLayoutDefinition* Existing = Definitions.Find(Definition.LayoutId))
@@ -150,7 +150,7 @@ TValueOrError<const FFlecsReplicationLayoutDefinition*, FString> FFlecsReplicati
 	
 	solid_ensure(!Definitions.Contains(Id));
 	
-	Definitions.Add(Id, MoveTemp(Definition));
+	Definitions.Add(Id, SOLID_MOV(Definition));
 	TableCache.Add(Table, Id);
 	bOutCreatedNewLayout = true;
 	
