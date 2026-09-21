@@ -36,7 +36,10 @@ public:
 		return Value.ToString(EGuidFormats::DigitsWithHyphensLower);
 	}
 	
-	friend bool operator==(const FFlecsReplicationLayoutId&, const FFlecsReplicationLayoutId&) = default;
+	NO_DISCARD FORCEINLINE bool UEOpEquals(const FFlecsReplicationLayoutId& Other) const
+	{
+		return Value == Other.Value;
+	}
 
 	UPROPERTY()
 	FGuid Value;

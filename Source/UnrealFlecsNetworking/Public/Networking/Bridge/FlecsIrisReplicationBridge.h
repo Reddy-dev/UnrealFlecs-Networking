@@ -56,7 +56,7 @@ struct FFlecsReplicationShardPoolKey
 	FFlecsReplicationShardPoolKey(const FFlecsEntityView& InProfile,
 		const FFlecsReplicationShardSelection& InSelection);
 
-	NO_DISCARD bool operator==(const FFlecsReplicationShardPoolKey& Other) const
+	NO_DISCARD bool UEOpEquals(const FFlecsReplicationShardPoolKey& Other) const
 	{
 		return ShardClass == Other.ShardClass
 			&& ShardGroupKey == Other.ShardGroupKey
@@ -73,6 +73,18 @@ struct FFlecsReplicationShardPoolKey
 	}
 
 }; // struct FFlecsReplicationShardPoolKey
+
+template <>
+struct TStructOpsTypeTraits<FFlecsReplicationShardPoolKey> : public TStructOpsTypeTraitsBase2<FFlecsReplicationShardPoolKey>
+{
+	enum
+	{
+		WithCopy = true,
+		WithMoveAssign = true,
+		WithIdenticalViaEquality = true,
+	};
+	
+}; // struct TStructOpsTypeTraits<FFlecsReplicationShardPoolKey
 
 UCLASS()
 class UNREALFLECSNETWORKING_API UFlecsIrisReplicationBridge : public UFlecsReplicationBridgeBase, public INetRootObjectFactoryExtension

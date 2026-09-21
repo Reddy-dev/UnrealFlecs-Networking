@@ -20,14 +20,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Replication")
 	float CullDistance = 0.f;
 
-	NO_DISCARD bool operator==(const FFlecsReplicationCullDistanceComponent& Other) const
+	NO_DISCARD bool UEOpEquals(const FFlecsReplicationCullDistanceComponent& Other) const
 	{
 		return CullDistance == Other.CullDistance;
-	}
-
-	NO_DISCARD bool operator!=(const FFlecsReplicationCullDistanceComponent& Other) const
-	{
-		return !(*this == Other);
 	}
 	
 }; // struct FFlecsReplicationProfileCullDistance

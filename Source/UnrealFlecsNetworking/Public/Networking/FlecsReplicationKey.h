@@ -47,8 +47,25 @@ struct UNREALFLECSNETWORKING_API FFlecsReplicationIndividualKey
 	UPROPERTY()
 	FFlecsNetworkId EntityNetworkId;
 	
-	FORCEINLINE friend bool operator==(const FFlecsReplicationIndividualKey&, const FFlecsReplicationIndividualKey&) = default;
-	
+	FORCEINLINE NO_DISCARD bool UEOpEquals(const FFlecsReplicationIndividualKey& Other) const
+	{
+		switch (Kind)
+		{
+			case EFlecsReplicationPairTargetKind::None:
+				return Kind == Other.Kind;
+			case EFlecsReplicationPairTargetKind::Schema:
+				return Kind == Other.Kind && Schema == Other.Schema;
+			case EFlecsReplicationPairTargetKind::StableSymbolValue:
+			case EFlecsReplicationPairTargetKind::StablePathValue:
+				return Kind == Other.Kind && StableIdentifier == Other.StableIdentifier;
+			case EFlecsReplicationPairTargetKind::Entity:
+				return Kind == Other.Kind && EntityNetworkId == Other.EntityNetworkId;
+		}
+
+		return false;
+	}
+
+
 	FORCEINLINE friend uint32 GetTypeHash(const FFlecsReplicationIndividualKey& Key)
 	{
 		uint32 Hash = GetTypeHash(Key.Kind);
@@ -82,6 +99,15 @@ struct UNREALFLECSNETWORKING_API FFlecsReplicationIndividualKey
 	static NO_DISCARD FFlecsId ResolveToId(const TSolidNotNull<const UFlecsWorldInterfaceObject*> InWorld, const FFlecsReplicationIndividualKey& InKey);
 	
 }; // struct FFlecsReplicationIndividualKey
+	
+template <>
+struct TStructOpsTypeTraits<FFlecsReplicationIndividualKey> : public TStructOpsTypeTraitsBase2<FFlecsReplicationIndividualKey>
+{
+	enum
+	{
+		WithIdenticalViaEquality = true
+	}; // enum
+}; // struct TStructOpsTypeTraits<FFlecsReplicationIndividualKey
 
 UENUM()
 enum class EFlecsReplicationKeyStorageKind : uint8
@@ -161,7 +187,19 @@ struct UNREALFLECSNETWORKING_API FFlecsReplicationKey
 
 	NO_DISCARD FString CanonicalString() const;
 	
-	friend bool operator==(const FFlecsReplicationKey&, const FFlecsReplicationKey&) = default;
+	NO_DISCARD FORCEINLINE bool UEOpEquals(const FFlecsReplicationKey& Other) const
+	{
+		switch (Kind)
+		{
+			case EFlecsReplicationKeyKind::Component:
+				return Kind == Other.Kind && StorageKind == Other.StorageKind && Primary == Other.Primary;
+			case EFlecsReplicationKeyKind::Pair:
+				return Kind == Other.Kind && StorageKind == Other.StorageKind 
+					&& Primary == Other.Primary && Secondary == Other.Secondary;
+		}
+
+		return false;
+	}
 	
 	NO_DISCARD const FFlecsComponentReplicationDescriptor* TryGetDominantDescriptor(
 		const TSolidNotNull<const UFlecsWorldInterfaceObject*> InWorld) const;

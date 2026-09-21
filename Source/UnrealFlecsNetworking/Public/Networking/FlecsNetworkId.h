@@ -71,14 +71,14 @@ public:
 		return FString::Printf(TEXT("Slot:%u Gen:%u"), GetSlot(), GetGeneration());
 	}
 
-	NO_DISCARD constexpr bool operator==(const FFlecsNetworkId& Other) const
+	NO_DISCARD constexpr bool UEOpEquals(const FFlecsNetworkId& Other) const
 	{
 		return Value == Other.Value;
 	}
 	
-	NO_DISCARD friend constexpr bool operator<(const FFlecsNetworkId& A, const FFlecsNetworkId& B)
+	NO_DISCARD FORCEINLINE constexpr bool UEOpLessThan(const FFlecsNetworkId& Other) const
 	{
-		return A.Value < B.Value;
+		return Value < Other.Value;
 	}
 	
 	NO_DISCARD friend uint32 GetTypeHash(const FFlecsNetworkId& InId)
@@ -98,13 +98,3 @@ struct TFlecsComponentTraits<FFlecsNetworkId> : public TFlecsComponentTraitsBase
 {
 	using WithTypes = TTuple<FFlecsReplicatedEntityComponent>;
 }; // struct TFlecsComponentTraits<FFlecsNetworkId>
-
-template<>
-struct TStructOpsTypeTraits<FFlecsNetworkId> : public TStructOpsTypeTraitsBase2<FFlecsNetworkId>
-{
-	enum
-	{
-		WithIdenticalViaEquality = true
-	};
-	
-}; // struct TStructOpsTypeTraits<FFlecsNetworkId>

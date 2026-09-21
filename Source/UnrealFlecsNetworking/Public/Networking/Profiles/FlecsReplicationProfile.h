@@ -39,7 +39,7 @@ struct UNREALFLECSNETWORKING_API FFlecsReplicationProfileDefinition
 		return AddParam(TInstancedStruct<T>::Make({}));
 	}
 	
-	FORCEINLINE bool operator==(const FFlecsReplicationProfileDefinition& Other) const
+	NO_DISCARD FORCEINLINE bool UEOpEquals(const FFlecsReplicationProfileDefinition& Other) const
 	{
 		if (ParameterComponents.Num() != Other.ParameterComponents.Num())
 		{
@@ -68,11 +68,6 @@ struct UNREALFLECSNETWORKING_API FFlecsReplicationProfileDefinition
 		return true;
 	}
 	
-	FORCEINLINE bool operator!=(const FFlecsReplicationProfileDefinition& Other) const
-	{
-		return !(*this == Other);
-	}
-	
 }; // struct FFlecsReplicationProfileDefinition
 
 template <>
@@ -80,6 +75,15 @@ struct TFlecsComponentTraits<FFlecsReplicationProfileDefinition> : public TFlecs
 {
 	static constexpr EFlecsOnInstantiate OnInstantiate = EFlecsOnInstantiate::Inherit;
 }; // struct TFlecsComponentTraits<FFlecsReplicationProfileDefinition>
+
+template <>
+struct TStructOpsTypeTraits<FFlecsReplicationProfileDefinition> : public TStructOpsTypeTraitsBase2<FFlecsReplicationProfileDefinition>
+{
+	enum
+	{
+		WithIdenticalViaEquality = true,
+	};
+};
 
 /** Identifies a Flecs entity as a replication profile prefab. */
 USTRUCT(BlueprintType)

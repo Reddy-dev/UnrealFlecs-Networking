@@ -44,7 +44,7 @@ struct UNREALFLECSNETWORKING_API FFlecsReplicationSchemaId
 		return Value.ToString(EGuidFormats::DigitsWithHyphensLower);
 	}
 	
-	FORCEINLINE bool operator==(const FFlecsReplicationSchemaId& Other) const
+	NO_DISCARD FORCEINLINE bool UEOpEquals(const FFlecsReplicationSchemaId& Other) const
 	{
 		return Value == Other.Value;
 	}
@@ -79,15 +79,6 @@ struct UNREALFLECSNETWORKING_API FFlecsReplicationSchemaId
 	FGuid Value;
 	
 }; // struct FFlecsReplicationSchemaId
-
-template<>
-struct TStructOpsTypeTraits<FFlecsReplicationSchemaId> : TStructOpsTypeTraitsBase2<FFlecsReplicationSchemaId>
-{
-	enum
-	{
-		WithIdenticalViaEquality = true
-	};
-}; // struct TStructOpsTypeTraits<FFlecsReplicationSchemaId>
 
 /**
  * Per-world description of one component that may appear in replication.

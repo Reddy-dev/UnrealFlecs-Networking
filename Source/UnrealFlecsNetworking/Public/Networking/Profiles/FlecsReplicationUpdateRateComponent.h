@@ -18,14 +18,9 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Replication")
 	float UpdateRate = 0.f;
 	
-	NO_DISCARD bool operator==(const FFlecsReplicationUpdateRateComponent& Other) const
+	NO_DISCARD FORCEINLINE bool UEOpEquals(const FFlecsReplicationUpdateRateComponent& Other) const
 	{
 		return UpdateRate == Other.UpdateRate;
-	}
-	
-	NO_DISCARD bool operator!=(const FFlecsReplicationUpdateRateComponent& Other) const
-	{
-		return !(*this == Other);
 	}
 	
 }; // struct FFlecsReplicationUpdateRateComponent

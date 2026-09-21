@@ -18,14 +18,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Replication")
 	float CullDistance = 0.f;
 
-	NO_DISCARD bool operator==(const FFlecsReplicationProfileCullDistance& Other) const
+	NO_DISCARD FORCEINLINE bool UEOpEquals(const FFlecsReplicationProfileCullDistance& Other) const
 	{
 		return CullDistance == Other.CullDistance;
-	}
-
-	NO_DISCARD bool operator!=(const FFlecsReplicationProfileCullDistance& Other) const
-	{
-		return !(*this == Other);
 	}
 	
 	virtual void ApplyToEntity(const FFlecsEntityHandle& InEntity) const override;
@@ -41,16 +36,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Replication")
 	float UpdateRate = 0.f;
 	
-	NO_DISCARD bool operator==(const FFlecsReplicationProfileUpdateRate& Other) const
+	NO_DISCARD FORCEINLINE bool UEOpEquals(const FFlecsReplicationProfileUpdateRate& Other) const
 	{
 		return UpdateRate == Other.UpdateRate;
 	}
-	
-	NO_DISCARD bool operator!=(const FFlecsReplicationProfileUpdateRate& Other) const
-	{
-		return !(*this == Other);
-	}
-	
+
 	virtual void ApplyToEntity(const FFlecsEntityHandle& InEntity) const override;
 	
 }; // struct FFlecsReplicationProfileUpdateRate
@@ -80,14 +70,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Replication")
 	FName Name = NAME_None;
 
-	NO_DISCARD bool operator==(const FFlecsReplicationProfileObjectPrioritizer& Other) const
+	NO_DISCARD bool UEOpEquals(const FFlecsReplicationProfileObjectPrioritizer& Other) const
 	{
 		return Name == Other.Name;
-	}
-
-	NO_DISCARD bool operator!=(const FFlecsReplicationProfileObjectPrioritizer& Other) const
-	{
-		return !(*this == Other);
 	}
 
 	virtual void ApplyToEntity(const FFlecsEntityHandle& InEntity) const override;
@@ -109,14 +94,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Replication")
 	FName Name = NAME_None;
 
-	NO_DISCARD bool operator==(const FFlecsReplicationProfileNetFilter& Other) const
+	NO_DISCARD FORCEINLINE bool UEOpEquals(const FFlecsReplicationProfileNetFilter& Other) const
 	{
 		return Name == Other.Name;
-	}
-
-	NO_DISCARD bool operator!=(const FFlecsReplicationProfileNetFilter& Other) const
-	{
-		return !(*this == Other);
 	}
 
 	virtual void ApplyToEntity(const FFlecsEntityHandle& InEntity) const override;
@@ -138,14 +118,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Replication")
 	FName Name = NAME_None;
 
-	NO_DISCARD bool operator==(const FFlecsReplicationProfileNetShardSelector& Other) const
+	NO_DISCARD FORCEINLINE bool UEOpEquals(const FFlecsReplicationProfileNetShardSelector& Other) const
 	{
 		return Name == Other.Name;
-	}
-
-	NO_DISCARD bool operator!=(const FFlecsReplicationProfileNetShardSelector& Other) const
-	{
-		return !(*this == Other);
 	}
 
 	virtual void ApplyToEntity(const FFlecsEntityHandle& InEntity) const override;
