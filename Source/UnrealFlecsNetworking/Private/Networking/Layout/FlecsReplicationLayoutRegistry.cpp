@@ -2,31 +2,26 @@
 
 #include "Networking/Layout/FlecsReplicationLayoutRegistry.h"
 
+#include "General/FlecsHash.h"
+
 #include "Networking/FlecsReplicationKey.h"
 
 FFlecsReplicationLayoutId FFlecsReplicationLayoutRegistry::ComputeLayoutId(
 	const TArray<FFlecsReplicationKey>& Keys)
 {
-	FMD5 Md5;
+	UE::Flecs::FHash128Builder HashBuilder;
 	
 	for (const FFlecsReplicationKey& Key : Keys)
 	{
 		const FString Canonical = Key.CanonicalString();
 		FTCHARToUTF8 Utf8(*Canonical);
-		Md5.Update(reinterpret_cast<const uint8*>(Utf8.Get()), Utf8.Length());
-		const uint8 Separator = 0;
-		Md5.Update(&Separator, 1);
+		HashBuilder.Update(Utf8.Get(), Utf8.Length());
+
+		constexpr uint8 Separator = 0;
+		HashBuilder.Update(&Separator, 1);
 	}
 	
-	FMD5Hash Hash;
-	
-	Hash.Set(Md5);
-	FGuid Guid = MD5HashToGuid(Hash);
-	
-	if (!Guid.IsValid())
-	{
-		Guid.D = 1;
-	}
+	const FGuid Guid = HashBuilder.Finalize().ToGuid();
 	
 	return FFlecsReplicationLayoutId(Guid);
 }

@@ -2,7 +2,7 @@
 
 #include "Networking/FlecsComponentReplicationDescriptor.h"
 
-#include "Misc/SecureHash.h"
+#include "General/FlecsHash.h"
 #include "UObject/UnrealType.h"
 
 #include "Logs/FlecsCategories.h"
@@ -103,17 +103,10 @@ FFlecsReplicationSchemaId FFlecsReplicationSchemaId::FromStableName(const FStrin
 
 	const FTCHARToUTF8 Utf8(*StableName);
 	
-	FMD5 Md5;
-	Md5.Update(reinterpret_cast<const uint8*>(Utf8.Get()), Utf8.Length());
+	UE::Flecs::FHash128Builder HashBuilder;
+	HashBuilder.Update(Utf8.Get(), Utf8.Length());
 	
-	FMD5Hash Hash;
-	Hash.Set(Md5);
-	FGuid Guid = MD5HashToGuid(Hash);
-	
-	if (!Guid.IsValid())
-	{
-		Guid.D = 1;
-	}
+	const FGuid Guid = HashBuilder.Finalize().ToGuid();
 	
 	return FFlecsReplicationSchemaId(Guid);
 }
