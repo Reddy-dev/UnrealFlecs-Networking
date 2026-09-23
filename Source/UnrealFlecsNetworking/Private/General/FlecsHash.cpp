@@ -9,9 +9,9 @@ namespace UE::Flecs
 	struct FHash128Builder::FImpl
 	{
 		FXxHash128Builder Builder;
-	};
+	}; // struct FHash128Builder::FImpl
 
-	FGuid FHash128::ToGuid() const
+	NO_DISCARD FGuid FHash128::ToGuid() const
 	{
 		FGuid Guid(
 			static_cast<uint32>(High >> 32),
@@ -38,18 +38,18 @@ namespace UE::Flecs
 
 	FHash128Builder& FHash128Builder::operator=(FHash128Builder&& InOther) noexcept = default;
 
-	void FHash128Builder::Update(const void* InData, const uint64 InSize)
+	void FHash128Builder::Update(const void* InData, const uint64 InSize) const
 	{
-		check(Impl.Get() != nullptr);
+		solid_check(Impl.Get() != nullptr);
 		Impl->Builder.Update(InData, InSize);
 	}
 
-	FHash128 FHash128Builder::Finalize() const
+	NO_DISCARD FHash128 FHash128Builder::Finalize() const
 	{
-		check(Impl.Get() != nullptr);
+		solid_check(Impl.Get() != nullptr);
 
-		const FXxHash128 Hash = Impl->Builder.Finalize();
-		return { Hash.HashLow, Hash.HashHigh };
+		const auto [HashLow, HashHigh] = Impl->Builder.Finalize();
+		return { .Low = HashLow, .High = HashHigh };
 	}
 
 } // namespace UE::Flecs

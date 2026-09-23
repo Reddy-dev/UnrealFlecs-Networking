@@ -18,7 +18,7 @@ namespace UE::Flecs
 
 		/** Converts this hash to a valid GUID for APIs that use FGuid as an identity. */
 		NO_DISCARD FGuid ToGuid() const;
-	};
+	}; // struct FHash128
 
 	/** Incrementally hashes bytes without exposing the selected hash implementation. */
 	class UNREALFLECSNETWORKING_API FHash128Builder
@@ -33,13 +33,13 @@ namespace UE::Flecs
 		FHash128Builder(FHash128Builder&& InOther) noexcept;
 		FHash128Builder& operator=(FHash128Builder&& InOther) noexcept;
 
-		void Update(const void* InData, uint64 InSize);
+		void Update(const void* InData, uint64 InSize) const;
 
 		NO_DISCARD FHash128 Finalize() const;
 
 	private:
 		struct FImpl;
 		TUniquePtr<FImpl> Impl;
-	};
+	}; // class FHash128Builder
 
 } // namespace UE::Flecs
